@@ -1,0 +1,150 @@
+/* --- ESTILOS GERAIS --- */
+* {
+    /* MUDANÇA: Garante dimensionamento mais previsível */
+    box-sizing: border-box; 
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    overflow: hidden; 
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+.section {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 20px;
+}
+
+/* --- PAINEL DE CONTROLES (ESQUERDA) --- */
+.controls-panel {
+    width: 300px;
+    background-color: #ffffff;
+    padding: 20px;
+    overflow-y: auto; 
+    border-right: 1px solid #ccc;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+
+.controls-panel h2, .controls-panel h3 {
+    margin-top: 0;
+    color: #111;
+}
+
+.info-inputs label {
+    display: block;
+    margin-top: 10px;
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.info-inputs input[type="text"],
+.info-inputs input[type="date"] {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* --- MUDANÇA: Estilo base de botões (Simetria) --- */
+button {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center; /* Padrão centralizado para simetria */
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* --- MUDANÇA: Botões de navegação de imagens --- */
+.nav-button {
+    background-color: #6c757d;
+    text-align: left; /* Botões de navegação ficam à esquerda */
+}
+.nav-button:hover {
+    background-color: #5a6268;
+}
+
+/* --- MUDANÇA: Botão Voltar --- */
+.nav-back-button { 
+    background-color: transparent;
+    color: #007bff;
+    text-align: center;
+    padding: 5px;
+}
+.nav-back-button:hover {
+    background-color: #f0f2f5;
+}
+
+/* Botões de Ação */
+#btn-delete { background-color: #dc3545; }
+#btn-delete:hover { background-color: #c82333; }
+
+#btn-clear-all { background-color: #fd7e14; }
+#btn-clear-all:hover { background-color: #e06c11; }
+
+#btn-download-pdf { background-color: #28a745; }
+#btn-download-pdf:hover { background-color: #218838; }
+
+
+/* --- ÁREA DO CANVAS (DIREITA) --- */
+.canvas-container {
+    flex: 1; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    overflow: auto; 
+}
+
+#c {
+    border: 1px solid #999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background-color: #ffffff;
+}
+
+/* --- REGRAS DE IMPRESSÃO --- */
+@media print {
+    body > *:not(.canvas-container) {
+        display: none;
+    }
+
+    .canvas-container, body, html {
+        padding: 0;
+        margin: 0;
+        overflow: visible;
+        background-color: #fff;
+    }
+
+    #c {
+        border: none;
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+        width: 210mm;
+        height: 297mm;
+        page-break-before: always;
+        page-break-after: always;
+    }
+}

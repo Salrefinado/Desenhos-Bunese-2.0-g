@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desenhos Bunese</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="controls-panel">
+            <header>
+                <h2>Desenhos Bunese</h2>
+            </header>
+
+            <div class="info-inputs section">
+                <label for="title-input">Título do Orçamento:</label>
+                <input type="text" id="title-input" placeholder="Ex: Coifa Cozinha Gourmet">
+                
+                <label for="date-input">Data:</label>
+                <input type="date" id="date-input">
+            </div>
+
+            <div class="navigation-panel section">
+                <h3>Componentes</h3>
+                <div id="nav-container">
+                    </div>
+                <button id="btn-back" class="nav-back-button" style="display: none;">&larr; Voltar</button>
+            </div>
+
+            <div class="tools-panel section">
+                <h3>Ferramentas</h3>
+                <button id="btn-dimension">📏 Cota</button>
+                <button id="btn-text">T Texto</button>
+                <button id="btn-erase">⬜ Apagar</button>
+            </div>
+
+            <div class="actions-panel section">
+                <h3>Ações</h3>
+                <button id="btn-delete">Remover Selecionado (Del)</button>
+                <button id="btn-rotate">Rotacionar 90º</button>
+                <button id="btn-clear-all">Limpar Tudo</button>
+                <button id="btn-download-pdf">Baixar PDF</button>
+            </div>
+        </div>
+
+        <div class="canvas-container" id="canvas-wrapper">
+            <canvas id="c" width="595" height="842"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+        // --- 1. INICIALIZAÇÃO E VARIÁVEIS GLOBAIS ---
+        
+        const canvas = new fabric.Canvas('c', {
+            backgroundColor: '#ffffff'
+        });
+
+        // Navegação
+        let currentLevel = 'groups'; 
+        let currentGroup = '';
+        let currentSubfolder = '';
+        
+        // --- Variáveis da Ferramenta Cota ---
+        let cotando = false;
+        let dimensionStep = 0; // 0 = inativo, 1 = esperando 1º clique, 2 = esperando 2º clique
+        let startPoint = null;
+        let previewLine = null;
+        let currentHoveredDimId = null;
+
+        // DOM
+        const titleInput = document.getElementById('title-input');
+        const dateInput = document.getElementById('date-input');
+        const navContainer = document.getElementById('nav-container');
+        const btnBack = document.getElementById('btn-back');
+        const btnDimension = document.getElementById('btn-dimension');
+
+        const { jsPDF } = window.jspdf;
+
+        // --- 2. LÓGICA DE TÍTULO E DATA ---
+
+        const titleText = new fabric.IText('Título do Orçamento', {
+            left: 20, top: 20, fontSize: 16, fill: '#333', isProtected: true 
+        });
+        canvas.add(titleText);
+
+        const dateText = new fabric.IText('DD/MM/YYYY', {
+            left: 575, top: 20, fontSize: 12, fill: '#555', originX: 'right', isProtected: true
+        });
+        canvas.add(dateText);
+
+        titleInput.addEventListener('input', (e) => {
+            titleText.set('text', e.target.value || 'Título do Orçamento');
+            canvas.renderAll();
+        });
+
+        dateInput.addEventListener('input', (e) => {
+            let dateVal = e.target.value;
+            if (dateVal) {
+                const [year, month, day] = dateVal.split('-');
+                dateText.set('text', `${day}/${month}/${year}`);
+            } else {
+                dateText.set('text', 'DD/MM/YYYY');
+            }
+            canvas.renderAll();
+        });
+
+        // --- 3. NAVEGAÇÃO E CARREGAMENTO DE IMAGENS ---
+
+        function createNavButton(text, onClick) {
+            const button = document.createElement('button');
+            button.textContent = text.replace('.png', ''); 
+            button.className = 'nav-button'; 
+            button.onclick = onClick;
+            navContainer.appendChild(button);
+        }
+
+        async function loadGroups() {
+            const response = await fetch('/get-groups'); const groups = await response.json();
+            navContainer.innerHTML = ''; 
+            groups.forEach(group => createNavButton(group, () => loadSubfolders(group)));
+            currentLevel = 'groups'; btnBack.style.display = 'none'; 
+        }
+
+        async function loadSubfolders(group) {
+            const response = await fetch(`/get-subfolders?group=${group}`); const subfolders = await response.json();
+            navContainer.innerHTML = '';
+            subfolders.forEach(subfolder => createNavButton(subfolder, () => loadImages(group, subfolder)));
+            currentGroup = group; currentLevel = 'subfolders'; btnBack.style.display = 'block';
+        }
+
+        async function loadImages(group, subfolder) {
+            const response = await fetch(`/get-images?group=${group}&subfolder=${subfolder}`); const images = await response.json();
+            navContainer.innerHTML = '';
+            images.forEach(image => createNavButton(image, () => addImageToCanvas(group, subfolder, image)));
+            currentSubfolder = subfolder; currentLevel = 'images'; btnBack.style.display = 'block';
+        }
+
+        function addImageToCanvas(group, subfolder, image) {
+            deactivateDimensionMode(); // Desativa a cota ao adicionar imagem
+            const imageUrl = `/static/images/${group}/${subfolder}/${image}`;
+            fabric.Image.fromURL(imageUrl, (img) => {
+                if (img.width > canvas.width) img.scaleToWidth(canvas.width / 2);
+                img.set({ left: canvas.width / 2, top: canvas.height / 2, originX: 'center', originY: 'center' });
+                canvas.add(img); canvas.setActiveObject(img); canvas.renderAll();
+            });
+        }
+
+        btnBack.addEventListener('click', () => {
+            if (currentLevel === 'images') loadSubfolders(currentGroup);
+            else if (currentLevel === 'subfolders') loadGroups();
+        });
+
+        loadGroups(); // Carga inicial
+
+        // --- 4. BOTÕES DE AÇÃO ---
+
+        document.getElementById('btn-delete').addEventListener('click', deleteSelectedObjects);
+        
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+                deleteSelectedObjects();
+            }
+        });
+
+        function deleteSelectedObjects() {
+            const activeObjects = canvas.getActiveObjects();
+            if (!activeObjects || activeObjects.length === 0) return;
+            
+            canvas.discardActiveObject(); 
+            
+            // Cria um Set para garantir que deletemos cada grupo de cota apenas uma vez
+            const dimIdsToDelete = new Set();
+
+            activeObjects.forEach(obj => {
+                if (obj.isHandle) return; // Não deletar a cota ao selecionar só o handle
+
+                if (obj.dimensionId) {
+                    dimIdsToDelete.add(obj.dimensionId);
+                } else if (!obj.isProtected) { 
+                    canvas.remove(obj);
+                }
+            });
+
+            if (dimIdsToDelete.size > 0) {
+                const allObjects = canvas.getObjects();
+                for (let i = allObjects.length - 1; i >= 0; i--) {
+                    if (dimIdsToDelete.has(allObjects[i].dimensionId)) {
+                        canvas.remove(allObjects[i]);
+                    }
+                }
+            }
+            canvas.renderAll();
+        }
+
+        document.getElementById('btn-rotate').addEventListener('click', () => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) { activeObj.rotate(activeObj.angle + 90); canvas.renderAll(); }
+        });
+
+        document.getElementById('btn-clear-all').addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja apagar todo o desenho?')) {
+                const allObjects = canvas.getObjects();
+                for (let i = allObjects.length - 1; i >= 0; i--) {
+                    if (!allObjects[i].isProtected) canvas.remove(allObjects[i]);
+                }
+                canvas.renderAll();
+            }
+        });
+
+        // --- 5. EXPORTAÇÃO (PDF) ---
+
+        document.getElementById('btn-download-pdf').addEventListener('click', () => {
+            canvas.discardActiveObject(); canvas.renderAll();
+            const multiplier = 4;
+            const imgData = canvas.toDataURL({ format: 'png', quality: 1.0, multiplier: multiplier });
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+            pdf.addImage(imgData, 'PNG', 0, 0, 595.28, 841.89);
+            const fileName = (titleInput.value || 'Desenho_Bunese') + '.pdf';
+            pdf.save(fileName);
+        });
+        
+        // --- 6. FERRAMENTAS DE DESENHO ---
+        
+        // --- 6.1 Ferramenta Texto ---
+        document.getElementById('btn-text').addEventListener('click', () => {
+            deactivateDimensionMode();
+            const newText = new fabric.IText('Digite aqui', {
+                left: canvas.width / 2, top: canvas.height / 2, originX: 'center', originY: 'center',
+                fontFamily: 'Arial', fontSize: 20, fill: '#000000', editable: true
+            });
+            canvas.add(newText); canvas.setActiveObject(newText); newText.enterEditing();
+            canvas.renderAll();
+        });
+
+        // --- 6.2 Ferramenta Apagar ---
+        document.getElementById('btn-erase').addEventListener('click', () => {
+            deactivateDimensionMode();
+            const eraseBlock = new fabric.Rect({
+                left: canvas.width / 2, top: canvas.height / 2, originX: 'center', originY: 'center',
+                width: 100, height: 50, fill: '#ffffff', strokeWidth: 0,
+            });
+            canvas.add(eraseBlock); canvas.setActiveObject(eraseBlock);
+            canvas.renderAll();
+        });
+
+        // --- 6.3 Ferramenta Cota (IMPLEMENTAÇÃO) ---
+        
+        btnDimension.addEventListener('click', () => {
+            cotando = !cotando;
+            if(cotando) {
+                activateDimensionMode();
+            } else {
+                deactivateDimensionMode();
+            }
+        });
+
+        function activateDimensionMode() {
+            cotando = true;
+            dimensionStep = 1; // Esperando primeiro clique
+            canvas.selection = false; // Desabilita seleção de objetos
+            canvas.defaultCursor = 'crosshair';
+            btnDimension.style.backgroundColor = '#0056b3'; // Destaca o botão
+            canvas.discardActiveObject().renderAll();
+        }
+
+        function deactivateDimensionMode() {
+            cotando = false;
+            dimensionStep = 0;
+            startPoint = null;
+            if (previewLine) {
+                canvas.remove(previewLine);
+                previewLine = null;
+            }
+            canvas.selection = true; // Reabilita seleção
+            canvas.defaultCursor = 'default';
+            btnDimension.style.backgroundColor = ''; // Remove destaque
+        }
+
+        // Trava o ponto no eixo X ou Y
+        function snapOrtogonal(p1, p2) {
+            const dx = Math.abs(p2.x - p1.x);
+            const dy = Math.abs(p2.y - p1.y);
+            
+            if (dx > dy) { // Trava na horizontal
+                return { x: p2.x, y: p1.y };
+            } else { // Trava na vertical
+                return { x: p1.x, y: p2.y };
+            }
+        }
+
+        // Desenha a cota completa
+        function drawDimension(p1, p2) {
+            const dimId = fabric.util.getRandomInt(1, 1000000);
+            const color = '#333';
+            const arrowSize = 5;
+            const extLen = 15; // Comprimento inicial da linha de extensão
+            const isHorizontal = (p1.y === p2.y);
+            const dist = Math.abs(isHorizontal ? p2.x - p1.x : p2.y - p1.y);
+
+            let objects = [];
+
+            // 1. Linha Principal
+            const mainLine = new fabric.Line([p1.x, p1.y, p2.x, p2.y], { 
+                stroke: color, strokeWidth: 1, selectable: false, evented: true 
+            });
+            objects.push(mainLine);
+
+            // 2. Setas (Triângulos)
+            const angle = isHorizontal ? (p1.x < p2.x ? 90 : -90) : (p1.y < p2.y ? 180 : 0);
+            const arrow1 = new fabric.Triangle({
+                left: p1.x, top: p1.y, width: arrowSize, height: arrowSize * 1.5,
+                fill: color, angle: angle + 180, originX: 'center', originY: 'center',
+                selectable: false, evented: true
+            });
+            const arrow2 = new fabric.Triangle({
+                left: p2.x, top: p2.y, width: arrowSize, height: arrowSize * 1.5,
+                fill: color, angle: angle, originX: 'center', originY: 'center',
+                selectable: false, evented: true
+            });
+            objects.push(arrow1, arrow2);
+
+            // 3. Texto (Editável)
+            const textX = (p1.x + p2.x) / 2 + (isHorizontal ? 0 : -10);
+            const textY = (p1.y + p2.y) / 2 + (isHorizontal ? -10 : 0);
+            const text = new fabric.IText(dist.toFixed(0), {
+                left: textX, top: textY, originX: 'center', originY: isHorizontal ? 'bottom' : 'center',
+                fontSize: 14, fill: color, selectable: true, evented: true,
+                textAlign: 'center'
+            });
+            objects.push(text);
+
+            // 4. Linhas de Extensão (Pontilhadas)
+            const ext1_end = isHorizontal ? {x: p1.x, y: p1.y + extLen} : {x: p1.x + extLen, y: p1.y};
+            const ext2_end = isHorizontal ? {x: p2.x, y: p2.y + extLen} : {x: p2.x + extLen, y: p2.y};
+            
+            const extLine1 = new fabric.Line([p1.x, p1.y, ext1_end.x, ext1_end.y], {
+                stroke: color, strokeWidth: 1, strokeDashArray: [3, 3], 
+                selectable: false, evented: true
+            });
+            const extLine2 = new fabric.Line([p2.x, p2.y, ext2_end.x, ext2_end.y], {
+                stroke: color, strokeWidth: 1, strokeDashArray: [3, 3],
+                selectable: false, evented: true
+            });
+            objects.push(extLine1, extLine2);
+
+            // 5. Handles (Círculos)
+            const handle1 = new fabric.Circle({
+                left: ext1_end.x, top: ext1_end.y, radius: 4, fill: '#007bff',
+                stroke: 'white', strokeWidth: 1, originX: 'center', originY: 'center',
+                visible: false, selectable: true, evented: true, hasControls: false,
+                isHandle: true, extLine: extLine1, isHorizontal: isHorizontal
+            });
+            const handle2 = new fabric.Circle({
+                left: ext2_end.x, top: ext2_end.y, radius: 4, fill: '#007bff',
+                stroke: 'white', strokeWidth: 1, originX: 'center', originY: 'center',
+                visible: false, selectable: true, evented: true, hasControls: false,
+                isHandle: true, extLine: extLine2, isHorizontal: isHorizontal
+            });
+            objects.push(handle1, handle2);
+
+            // Adiciona ID a todos e adiciona ao canvas
+            objects.forEach(obj => {
+                obj.dimensionId = dimId;
+                canvas.add(obj);
+            });
+        }
+
+        // --- 6.4 Eventos do Canvas para a Cota ---
+
+        // cliques do mouse
+        canvas.on('mouse:down', (options) => {
+            if (!cotando || dimensionStep === 0) return;
+            
+            const point = options.pointer;
+
+            if (dimensionStep === 1) { // Primeiro clique
+                startPoint = point;
+                dimensionStep = 2; // Esperando segundo clique
+            } else if (dimensionStep === 2) { // Segundo clique
+                const endPoint = snapOrtogonal(startPoint, point);
+                
+                // Evita cota de tamanho zero
+                if (startPoint.x !== endPoint.x || startPoint.y !== endPoint.y) {
+                    drawDimension(startPoint, endPoint);
+                }
+                
+                deactivateDimensionMode(); // Reseta o modo após desenhar
+            }
+        });
+
+        // Mover o mouse (para preview)
+        canvas.on('mouse:move', (options) => {
+            if (dimensionStep !== 2 || !startPoint) return;
+
+            const currentPoint = options.pointer;
+            const snappedPoint = snapOrtogonal(startPoint, currentPoint);
+
+            if (previewLine) {
+                canvas.remove(previewLine);
+            }
+            
+            previewLine = new fabric.Line(
+                [startPoint.x, startPoint.y, snappedPoint.x, snappedPoint.y], 
+                { stroke: '#999', strokeDashArray: [5, 5], selectable: false }
+            );
+            canvas.add(previewLine);
+            canvas.renderAll();
+        });
+
+        // Lógica dos Handles
+        function setDimensionHandlesVisible(dimId, visible) {
+            if (!dimId) return;
+            canvas.getObjects().forEach(obj => {
+                if (obj.dimensionId === dimId && obj.isHandle) {
+                    obj.set('visible', visible);
+                }
+            });
+            canvas.renderAll();
+        }
+
+        // Mostrar handles ao passar o mouse
+        canvas.on('mouse:over', (e) => {
+            const target = e.target;
+            if (target && target.dimensionId && !target.isHandle) {
+                if (currentHoveredDimId !== target.dimensionId) {
+                    setDimensionHandlesVisible(currentHoveredDimId, false); // Esconde o anterior
+                    setDimensionHandlesVisible(target.dimensionId, true); // Mostra o atual
+                    currentHoveredDimId = target.dimensionId;
+                }
+            }
+        });
+
+        // Esconder handles ao tirar o mouse
+        canvas.on('mouse:out', (e) => {
+            const target = e.target;
+            if (target && target.dimensionId && !target.isHandle) {
+                // Verifica se o mouse não está entrando em outro objeto da *mesma* cota
+                const relatedTarget = e.e.relatedTarget ? canvas.findTarget(e.e) : null;
+                if (!relatedTarget || relatedTarget.dimensionId !== target.dimensionId) {
+                    setDimensionHandlesVisible(target.dimensionId, false);
+                    currentHoveredDimId = null;
+                }
+            }
+        });
+
+        // Arrastar os handles
+        canvas.on('object:moving', (e) => {
+            const handle = e.target;
+            if (!handle.isHandle) return;
+
+            const line = handle.extLine;
+            const p = handle.getCenterPoint();
+
+            if (handle.isHorizontal) {
+                // Trava o X, move o Y
+                handle.set({ left: line.x1 });
+                line.set({ y2: p.y });
+            } else {
+                // Trava o Y, move o X
+                handle.set({ top: line.y1 });
+                line.set({ x2: p.x });
+            }
+            line.setCoords();
+            canvas.renderAll();
+        });
+
+    });
+    // --- FIM DO CÓDIGO DA APLICAÇÃO ---
+</script>
+</body>
+</html>
