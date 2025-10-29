@@ -32,7 +32,7 @@ body, html {
     margin-bottom: 0;
 }
 
-/* --- PAINEL DE CONTROLES (ESQUERDA) --- */
+/* --- PAINEL de CONTROLES (ESQUERDA) --- */
 .controls-panel {
     width: 350px;
     background-color: #ffffff;
@@ -173,8 +173,17 @@ button:disabled {
     justify-content: space-between; /* Lado a lado */
     background-color: #fdfdfd;
     border: 1px solid #ccc;
-    border-top: none;
+    /* MUDANÇA: A borda superior foi restaurada para o caso de sobreposição */
+    border-top: 1px solid #ccc;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    
+    /* === MUDANÇAS APLICADAS === */
+    /* Move o rodapé para cima (sobrepondo o canvas) */
+    transform: translateY(-100%);
+    /* Garante que o rodapé fique acima do canvas */
+    position: relative;
+    z-index: 10;
+    /* === FIM DAS MUDANÇAS === */
 }
 
 .footer-text {
@@ -228,5 +237,10 @@ button:disabled {
         border: none;
         justify-content: space-between;
         width: 100%;
+        
+        /* MUDANÇA: Reseta a transformação na impressão, se necessário */
+        /* (Assumindo que o PDF lida com isso separadamente) */
+        transform: none; 
+        position: static;
     }
 }
