@@ -279,7 +279,12 @@
 
             // 5. Adicionar Textos do Rodapé (sobrepondo a imagem na parte inferior)
             // Posição Y (perto do fundo da página A4)
-            const yPosition = 825; 
+            
+            // === MUDANÇA APLICADA ===
+            // Valor diminuído (de 825 para 805) para subir o texto no PDF
+            const yPosition = 805; 
+            // === FIM DA MUDANÇA ===
+            
             const leftMargin = 20;
             const rightMargin = 575; // (595.28 - 20)
             
