@@ -29,6 +29,14 @@
                 <button id="btn-back" class="nav-back-button" style="display: none;">&larr; Voltar</button>
             </div>
 
+            <div class="history-panel section">
+                <h3>Navegação</h3>
+                <div class="history-buttons">
+                    <button id="btn-undo">← Desfazer</button>
+                    <button id="btn-redo">Refazer →</button>
+                </div>
+            </div>
+
             <div class="tools-panel section">
                 <h3>Ferramentas</h3>
                 <button id="btn-dimension">📏 Cota</button>
@@ -44,9 +52,16 @@
                 <button id="btn-download-pdf">Baixar PDF</button>
             </div>
         </div>
-
-        <div class="canvas-container" id="canvas-wrapper">
-            <canvas id="c" width="595" height="842"></canvas>
+        
+        <div class="main-content-area">
+            <div class="canvas-container" id="canvas-wrapper">
+                <canvas id="c" width="595" height="842"></canvas>
+                
+                <div class="canvas-footer">
+                    <span id="footer-title" class="footer-text">Orçamento</span>
+                    <span id="footer-date" class="footer-text">DD/MM/YYYY</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -54,6 +69,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script>
+    
+    // MUDANÇA: Função helper para formatar a data
+    function getFormattedDate() {
+        const today = new Date();
+        const day = String(today.getDate()).padStart(2, '0');
+        const month = String(today.getMonth() + 1).padStart(2, '0'); // Janeiro é 0!
+        const year = today.getFullYear();
+        
+        const inputFormat = `${year}-${month}-${day}`; // Para <input type="date">
+        const displayFormat = `${day}/${month}/${year}`; // Para <span> no rodapé
+        return { inputFormat, displayFormat };
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
 
         // --- 1. INICIALIZAÇÃO E VARIÁVEIS GLOBAIS ---
@@ -62,17 +90,23 @@
             backgroundColor: '#ffffff'
         });
 
-        // Navegação
+        // Navegação de arquivos
         let currentLevel = 'groups'; 
         let currentGroup = '';
         let currentSubfolder = '';
         
-        // --- Variáveis da Ferramenta Cota ---
+        // Variáveis Cota
         let cotando = false;
-        let dimensionStep = 0; // 0 = inativo, 1 = esperando 1º clique, 2 = esperando 2º clique
+        let dimensionStep = 0; 
         let startPoint = null;
         let previewLine = null;
         let currentHoveredDimId = null;
+
+        // Variáveis de Histórico (Undo/Redo)
+        let history = [];
+        let historyIndex = -1;
+        let isUndoRedo = false;
+        let isObjectModified = false; 
 
         // DOM
         const titleInput = document.getElementById('title-input');
@@ -80,36 +114,32 @@
         const navContainer = document.getElementById('nav-container');
         const btnBack = document.getElementById('btn-back');
         const btnDimension = document.getElementById('btn-dimension');
+        const btnUndo = document.getElementById('btn-undo');
+        const btnRedo = document.getElementById('btn-redo');
+
+        // DOM do Rodapé
+        const footerTitle = document.getElementById('footer-title');
+        const footerDate = document.getElementById('footer-date');
 
         const { jsPDF } = window.jspdf;
 
-        // --- 2. LÓGICA DE TÍTULO E DATA ---
 
-        const titleText = new fabric.IText('Título do Orçamento', {
-            left: 20, top: 20, fontSize: 16, fill: '#333', isProtected: true 
-        });
-        canvas.add(titleText);
-
-        const dateText = new fabric.IText('DD/MM/YYYY', {
-            left: 575, top: 20, fontSize: 12, fill: '#555', originX: 'right', isProtected: true
-        });
-        canvas.add(dateText);
-
+        // --- 2. LÓGICA DE TÍTULO E DATA (NO RODAPÉ) ---
+        
         titleInput.addEventListener('input', (e) => {
-            titleText.set('text', e.target.value || 'Título do Orçamento');
-            canvas.renderAll();
+            footerTitle.textContent = e.target.value || 'Orçamento';
         });
 
         dateInput.addEventListener('input', (e) => {
             let dateVal = e.target.value;
             if (dateVal) {
                 const [year, month, day] = dateVal.split('-');
-                dateText.set('text', `${day}/${month}/${year}`);
+                footerDate.textContent = `${day}/${month}/${year}`;
             } else {
-                dateText.set('text', 'DD/MM/YYYY');
+                footerDate.textContent = 'DD/MM/YYYY';
             }
-            canvas.renderAll();
         });
+
 
         // --- 3. NAVEGAÇÃO E CARREGAMENTO DE IMAGENS ---
 
@@ -143,12 +173,15 @@
         }
 
         function addImageToCanvas(group, subfolder, image) {
-            deactivateDimensionMode(); // Desativa a cota ao adicionar imagem
+            deactivateDimensionMode();
             const imageUrl = `/static/images/${group}/${subfolder}/${image}`;
             fabric.Image.fromURL(imageUrl, (img) => {
                 if (img.width > canvas.width) img.scaleToWidth(canvas.width / 2);
                 img.set({ left: canvas.width / 2, top: canvas.height / 2, originX: 'center', originY: 'center' });
-                canvas.add(img); canvas.setActiveObject(img); canvas.renderAll();
+                canvas.add(img); 
+                canvas.setActiveObject(img); 
+                canvas.renderAll();
+                saveState(); 
             });
         }
 
@@ -157,13 +190,17 @@
             else if (currentLevel === 'subfolders') loadGroups();
         });
 
-        loadGroups(); // Carga inicial
 
         // --- 4. BOTÕES DE AÇÃO ---
 
         document.getElementById('btn-delete').addEventListener('click', deleteSelectedObjects);
         
         window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey) {
+                if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); undo(); } 
+                else if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); redo(); }
+                return;
+            }
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
                 deleteSelectedObjects();
@@ -175,17 +212,16 @@
             if (!activeObjects || activeObjects.length === 0) return;
             
             canvas.discardActiveObject(); 
-            
-            // Cria um Set para garantir que deletemos cada grupo de cota apenas uma vez
             const dimIdsToDelete = new Set();
+            let itemsRemoved = false;
 
             activeObjects.forEach(obj => {
-                if (obj.isHandle) return; // Não deletar a cota ao selecionar só o handle
-
+                if (obj.isHandle) return; 
                 if (obj.dimensionId) {
                     dimIdsToDelete.add(obj.dimensionId);
-                } else if (!obj.isProtected) { 
+                } else { 
                     canvas.remove(obj);
+                    itemsRemoved = true;
                 }
             });
 
@@ -194,42 +230,78 @@
                 for (let i = allObjects.length - 1; i >= 0; i--) {
                     if (dimIdsToDelete.has(allObjects[i].dimensionId)) {
                         canvas.remove(allObjects[i]);
+                        itemsRemoved = true;
                     }
                 }
             }
-            canvas.renderAll();
+            
+            if (itemsRemoved) {
+                canvas.renderAll();
+                saveState(); 
+            }
         }
 
         document.getElementById('btn-rotate').addEventListener('click', () => {
             const activeObj = canvas.getActiveObject();
-            if (activeObj) { activeObj.rotate(activeObj.angle + 90); canvas.renderAll(); }
+            if (activeObj) { 
+                activeObj.rotate(activeObj.angle + 90); 
+                canvas.renderAll(); 
+            }
         });
 
         document.getElementById('btn-clear-all').addEventListener('click', () => {
             if (confirm('Tem certeza que deseja apagar todo o desenho?')) {
-                const allObjects = canvas.getObjects();
-                for (let i = allObjects.length - 1; i >= 0; i--) {
-                    if (!allObjects[i].isProtected) canvas.remove(allObjects[i]);
-                }
+                canvas.remove(...canvas.getObjects());
                 canvas.renderAll();
+                saveState(); 
             }
         });
 
         // --- 5. EXPORTAÇÃO (PDF) ---
 
+        // MUDANÇA: Atualizada para incluir Título e Data no PDF
         document.getElementById('btn-download-pdf').addEventListener('click', () => {
             canvas.discardActiveObject(); canvas.renderAll();
+            
+            // 1. Obter dados do Canvas
             const multiplier = 4;
             const imgData = canvas.toDataURL({ format: 'png', quality: 1.0, multiplier: multiplier });
+            
+            // 2. Obter dados do Rodapé (HTML)
+            const titleText = footerTitle.textContent;
+            const dateText = footerDate.textContent;
+
+            // 3. Inicializar PDF (A4 = 595.28 x 841.89 points)
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+            
+            // 4. Adicionar Imagem do Canvas (Ocupa a página A4 inteira)
             pdf.addImage(imgData, 'PNG', 0, 0, 595.28, 841.89);
+
+            // 5. Adicionar Textos do Rodapé (sobrepondo a imagem na parte inferior)
+            // Posição Y (perto do fundo da página A4)
+            const yPosition = 825; 
+            const leftMargin = 20;
+            const rightMargin = 575; // (595.28 - 20)
+            
+            // Define a fonte (para corresponder ao CSS .footer-text)
+            pdf.setFont("helvetica");
+            pdf.setFontSize(14);
+            pdf.setFont(undefined, 'bold');
+            pdf.setTextColor("#333333");
+
+            // Adiciona Título (Alinhado à esquerda)
+            pdf.text(titleText, leftMargin, yPosition);
+            
+            // Adiciona Data (Alinhado à direita)
+            pdf.text(dateText, rightMargin, yPosition, { align: 'right' });
+
+            // 6. Salvar PDF
             const fileName = (titleInput.value || 'Desenho_Bunese') + '.pdf';
             pdf.save(fileName);
         });
         
         // --- 6. FERRAMENTAS DE DESENHO ---
         
-        // --- 6.1 Ferramenta Texto ---
         document.getElementById('btn-text').addEventListener('click', () => {
             deactivateDimensionMode();
             const newText = new fabric.IText('Digite aqui', {
@@ -238,9 +310,9 @@
             });
             canvas.add(newText); canvas.setActiveObject(newText); newText.enterEditing();
             canvas.renderAll();
+            saveState();
         });
 
-        // --- 6.2 Ferramenta Apagar ---
         document.getElementById('btn-erase').addEventListener('click', () => {
             deactivateDimensionMode();
             const eraseBlock = new fabric.Rect({
@@ -249,231 +321,160 @@
             });
             canvas.add(eraseBlock); canvas.setActiveObject(eraseBlock);
             canvas.renderAll();
+            saveState();
         });
 
-        // --- 6.3 Ferramenta Cota (IMPLEMENTAÇÃO) ---
-        
+        // 6.3 Cota (Lógica inalterada)
         btnDimension.addEventListener('click', () => {
             cotando = !cotando;
-            if(cotando) {
-                activateDimensionMode();
-            } else {
-                deactivateDimensionMode();
-            }
+            if(cotando) activateDimensionMode();
+            else deactivateDimensionMode();
         });
-
-        function activateDimensionMode() {
-            cotando = true;
-            dimensionStep = 1; // Esperando primeiro clique
-            canvas.selection = false; // Desabilita seleção de objetos
-            canvas.defaultCursor = 'crosshair';
-            btnDimension.style.backgroundColor = '#0056b3'; // Destaca o botão
-            canvas.discardActiveObject().renderAll();
-        }
-
-        function deactivateDimensionMode() {
-            cotando = false;
-            dimensionStep = 0;
-            startPoint = null;
-            if (previewLine) {
-                canvas.remove(previewLine);
-                previewLine = null;
-            }
-            canvas.selection = true; // Reabilita seleção
-            canvas.defaultCursor = 'default';
-            btnDimension.style.backgroundColor = ''; // Remove destaque
-        }
-
-        // Trava o ponto no eixo X ou Y
-        function snapOrtogonal(p1, p2) {
-            const dx = Math.abs(p2.x - p1.x);
-            const dy = Math.abs(p2.y - p1.y);
-            
-            if (dx > dy) { // Trava na horizontal
-                return { x: p2.x, y: p1.y };
-            } else { // Trava na vertical
-                return { x: p1.x, y: p2.y };
-            }
-        }
-
-        // Desenha a cota completa
+        function activateDimensionMode() { cotando = true; dimensionStep = 1; canvas.selection = false; canvas.defaultCursor = 'crosshair'; btnDimension.style.backgroundColor = '#0056b3'; canvas.discardActiveObject().renderAll(); }
+        function deactivateDimensionMode() { cotando = false; dimensionStep = 0; startPoint = null; if (previewLine) { canvas.remove(previewLine); previewLine = null; } canvas.selection = true; canvas.defaultCursor = 'default'; btnDimension.style.backgroundColor = ''; }
+        function snapOrtogonal(p1, p2) { const dx = Math.abs(p2.x - p1.x); const dy = Math.abs(p2.y - p1.y); if (dx > dy) return { x: p2.x, y: p1.y }; else return { x: p1.x, y: p2.y }; }
         function drawDimension(p1, p2) {
-            const dimId = fabric.util.getRandomInt(1, 1000000);
-            const color = '#333';
-            const arrowSize = 5;
-            const extLen = 15; // Comprimento inicial da linha de extensão
-            const isHorizontal = (p1.y === p2.y);
-            const dist = Math.abs(isHorizontal ? p2.x - p1.x : p2.y - p1.y);
-
-            let objects = [];
-
-            // 1. Linha Principal
-            const mainLine = new fabric.Line([p1.x, p1.y, p2.x, p2.y], { 
-                stroke: color, strokeWidth: 1, selectable: false, evented: true 
-            });
-            objects.push(mainLine);
-
-            // 2. Setas (Triângulos)
-            const angle = isHorizontal ? (p1.x < p2.x ? 90 : -90) : (p1.y < p2.y ? 180 : 0);
-            const arrow1 = new fabric.Triangle({
-                left: p1.x, top: p1.y, width: arrowSize, height: arrowSize * 1.5,
-                fill: color, angle: angle + 180, originX: 'center', originY: 'center',
-                selectable: false, evented: true
-            });
-            const arrow2 = new fabric.Triangle({
-                left: p2.x, top: p2.y, width: arrowSize, height: arrowSize * 1.5,
-                fill: color, angle: angle, originX: 'center', originY: 'center',
-                selectable: false, evented: true
-            });
-            objects.push(arrow1, arrow2);
-
-            // 3. Texto (Editável)
-            const textX = (p1.x + p2.x) / 2 + (isHorizontal ? 0 : -10);
-            const textY = (p1.y + p2.y) / 2 + (isHorizontal ? -10 : 0);
-            const text = new fabric.IText(dist.toFixed(0), {
-                left: textX, top: textY, originX: 'center', originY: isHorizontal ? 'bottom' : 'center',
-                fontSize: 14, fill: color, selectable: true, evented: true,
-                textAlign: 'center'
-            });
-            objects.push(text);
-
-            // 4. Linhas de Extensão (Pontilhadas)
-            const ext1_end = isHorizontal ? {x: p1.x, y: p1.y + extLen} : {x: p1.x + extLen, y: p1.y};
-            const ext2_end = isHorizontal ? {x: p2.x, y: p2.y + extLen} : {x: p2.x + extLen, y: p2.y};
-            
-            const extLine1 = new fabric.Line([p1.x, p1.y, ext1_end.x, ext1_end.y], {
-                stroke: color, strokeWidth: 1, strokeDashArray: [3, 3], 
-                selectable: false, evented: true
-            });
-            const extLine2 = new fabric.Line([p2.x, p2.y, ext2_end.x, ext2_end.y], {
-                stroke: color, strokeWidth: 1, strokeDashArray: [3, 3],
-                selectable: false, evented: true
-            });
-            objects.push(extLine1, extLine2);
-
-            // 5. Handles (Círculos)
-            const handle1 = new fabric.Circle({
-                left: ext1_end.x, top: ext1_end.y, radius: 4, fill: '#007bff',
-                stroke: 'white', strokeWidth: 1, originX: 'center', originY: 'center',
-                visible: false, selectable: true, evented: true, hasControls: false,
-                isHandle: true, extLine: extLine1, isHorizontal: isHorizontal
-            });
-            const handle2 = new fabric.Circle({
-                left: ext2_end.x, top: ext2_end.y, radius: 4, fill: '#007bff',
-                stroke: 'white', strokeWidth: 1, originX: 'center', originY: 'center',
-                visible: false, selectable: true, evented: true, hasControls: false,
-                isHandle: true, extLine: extLine2, isHorizontal: isHorizontal
-            });
-            objects.push(handle1, handle2);
-
-            // Adiciona ID a todos e adiciona ao canvas
-            objects.forEach(obj => {
-                obj.dimensionId = dimId;
-                canvas.add(obj);
-            });
+            const dimId = fabric.util.getRandomInt(1, 1000000); const color = '#333'; const arrowSize = 5; const extLen = 15; const isHorizontal = (p1.y === p2.y); const dist = Math.abs(isHorizontal ? p2.x - p1.x : p2.y - p1.y); let objects = [];
+            const mainLine = new fabric.Line([p1.x, p1.y, p2.x, p2.y], { stroke: color, strokeWidth: 1, selectable: false, evented: true }); objects.push(mainLine);
+            const angle = isHorizontal ? (p1.x < p2.x ? 90 : -90) : (p1.y < p2.y ? 180 : 0); const arrow1 = new fabric.Triangle({ left: p1.x, top: p1.y, width: arrowSize, height: arrowSize * 1.5, fill: color, angle: angle + 180, originX: 'center', originY: 'center', selectable: false, evented: true }); const arrow2 = new fabric.Triangle({ left: p2.x, top: p2.y, width: arrowSize, height: arrowSize * 1.5, fill: color, angle: angle, originX: 'center', originY: 'center', selectable: false, evented: true }); objects.push(arrow1, arrow2);
+            const textX = (p1.x + p2.x) / 2 + (isHorizontal ? 0 : -10); const textY = (p1.y + p2.y) / 2 + (isHorizontal ? -10 : 0); const text = new fabric.IText(dist.toFixed(0), { left: textX, top: textY, originX: 'center', originY: isHorizontal ? 'bottom' : 'center', fontSize: 14, fill: color, selectable: true, evented: true, textAlign: 'center' }); objects.push(text);
+            const ext1_end = isHorizontal ? {x: p1.x, y: p1.y + extLen} : {x: p1.x + extLen, y: p1.y}; const ext2_end = isHorizontal ? {x: p2.x, y: p2.y + extLen} : {x: p2.x + extLen, y: p2.y}; const extLine1 = new fabric.Line([p1.x, p1.y, ext1_end.x, ext1_end.y], { stroke: color, strokeWidth: 1, strokeDashArray: [3, 3], selectable: false, evented: true }); const extLine2 = new fabric.Line([p2.x, p2.y, ext2_end.x, ext2_end.y], { stroke: color, strokeWidth: 1, strokeDashArray: [3, 3], selectable: false, evented: true }); objects.push(extLine1, extLine2);
+            const handle1 = new fabric.Circle({ left: ext1_end.x, top: ext1_end.y, radius: 4, fill: '#007bff', stroke: 'white', strokeWidth: 1, originX: 'center', originY: 'center', visible: false, selectable: true, evented: true, hasControls: false, isHandle: true, extLine: extLine1, isHorizontal: isHorizontal }); const handle2 = new fabric.Circle({ left: ext2_end.x, top: ext2_end.y, radius: 4, fill: '#007bff', stroke: 'white', strokeWidth: 1, originX: 'center', originY: 'center', visible: false, selectable: true, evented: true, hasControls: false, isHandle: true, extLine: extLine2, isHorizontal: isHorizontal }); objects.push(handle1, handle2);
+            objects.forEach(obj => { obj.dimensionId = dimId; canvas.add(obj); });
+            saveState(); 
         }
 
-        // --- 6.4 Eventos do Canvas para a Cota ---
-
-        // cliques do mouse
+        // 6.4 Eventos do Canvas
         canvas.on('mouse:down', (options) => {
             if (!cotando || dimensionStep === 0) return;
-            
             const point = options.pointer;
-
-            if (dimensionStep === 1) { // Primeiro clique
-                startPoint = point;
-                dimensionStep = 2; // Esperando segundo clique
-            } else if (dimensionStep === 2) { // Segundo clique
-                const endPoint = snapOrtogonal(startPoint, point);
-                
-                // Evita cota de tamanho zero
-                if (startPoint.x !== endPoint.x || startPoint.y !== endPoint.y) {
-                    drawDimension(startPoint, endPoint);
-                }
-                
-                deactivateDimensionMode(); // Reseta o modo após desenhar
-            }
+            if (dimensionStep === 1) { startPoint = point; dimensionStep = 2; } 
+            else if (dimensionStep === 2) { const endPoint = snapOrtogonal(startPoint, point); if (startPoint.x !== endPoint.x || startPoint.y !== endPoint.y) { drawDimension(startPoint, endPoint); } deactivateDimensionMode(); }
         });
-
-        // Mover o mouse (para preview)
         canvas.on('mouse:move', (options) => {
             if (dimensionStep !== 2 || !startPoint) return;
-
-            const currentPoint = options.pointer;
-            const snappedPoint = snapOrtogonal(startPoint, currentPoint);
-
-            if (previewLine) {
-                canvas.remove(previewLine);
-            }
-            
-            previewLine = new fabric.Line(
-                [startPoint.x, startPoint.y, snappedPoint.x, snappedPoint.y], 
-                { stroke: '#999', strokeDashArray: [5, 5], selectable: false }
-            );
-            canvas.add(previewLine);
-            canvas.renderAll();
+            const currentPoint = options.pointer; const snappedPoint = snapOrtogonal(startPoint, currentPoint);
+            if (previewLine) canvas.remove(previewLine);
+            previewLine = new fabric.Line( [startPoint.x, startPoint.y, snappedPoint.x, snappedPoint.y], { stroke: '#999', strokeDashArray: [5, 5], selectable: false });
+            canvas.add(previewLine); canvas.renderAll();
         });
+        function setDimensionHandlesVisible(dimId, visible) { if (!dimId) return; canvas.getObjects().forEach(obj => { if (obj.dimensionId === dimId && obj.isHandle) { obj.set('visible', visible); } }); canvas.renderAll(); }
+        canvas.on('mouse:over', (e) => { const target = e.target; if (target && target.dimensionId && !target.isHandle) { if (currentHoveredDimId !== target.dimensionId) { setDimensionHandlesVisible(currentHoveredDimId, false); setDimensionHandlesVisible(target.dimensionId, true); currentHoveredDimId = target.dimensionId; } } });
+        canvas.on('mouse:out', (e) => { const target = e.target; if (target && target.dimensionId && !target.isHandle) { const relatedTarget = e.e.relatedTarget ? canvas.findTarget(e.e) : null; if (!relatedTarget || relatedTarget.dimensionId !== target.dimensionId) { setDimensionHandlesVisible(target.dimensionId, false); currentHoveredDimId = null; } } });
 
-        // Lógica dos Handles
-        function setDimensionHandlesVisible(dimId, visible) {
-            if (!dimId) return;
-            canvas.getObjects().forEach(obj => {
-                if (obj.dimensionId === dimId && obj.isHandle) {
-                    obj.set('visible', visible);
-                }
-            });
-            canvas.renderAll();
-        }
-
-        // Mostrar handles ao passar o mouse
-        canvas.on('mouse:over', (e) => {
-            const target = e.target;
-            if (target && target.dimensionId && !target.isHandle) {
-                if (currentHoveredDimId !== target.dimensionId) {
-                    setDimensionHandlesVisible(currentHoveredDimId, false); // Esconde o anterior
-                    setDimensionHandlesVisible(target.dimensionId, true); // Mostra o atual
-                    currentHoveredDimId = target.dimensionId;
-                }
-            }
-        });
-
-        // Esconder handles ao tirar o mouse
-        canvas.on('mouse:out', (e) => {
-            const target = e.target;
-            if (target && target.dimensionId && !target.isHandle) {
-                // Verifica se o mouse não está entrando em outro objeto da *mesma* cota
-                const relatedTarget = e.e.relatedTarget ? canvas.findTarget(e.e) : null;
-                if (!relatedTarget || relatedTarget.dimensionId !== target.dimensionId) {
-                    setDimensionHandlesVisible(target.dimensionId, false);
-                    currentHoveredDimId = null;
-                }
-            }
-        });
-
-        // Arrastar os handles
-        canvas.on('object:moving', (e) => {
-            const handle = e.target;
-            if (!handle.isHandle) return;
-
+        function handleDimensionMove(handle) {
+            isObjectModified = true; 
             const line = handle.extLine;
             const p = handle.getCenterPoint();
-
             if (handle.isHorizontal) {
-                // Trava o X, move o Y
-                handle.set({ left: line.x1 });
-                line.set({ y2: p.y });
+                handle.set({ left: line.x1 }); line.set({ y2: p.y });
             } else {
-                // Trava o Y, move o X
-                handle.set({ top: line.y1 });
-                line.set({ x2: p.x });
+                handle.set({ top: line.y1 }); line.set({ x2: p.x });
             }
             line.setCoords();
             canvas.renderAll();
+        }
+
+        canvas.on('object:moving', (e) => {
+            const obj = e.target;
+            
+            if (obj.isHandle) {
+                handleDimensionMove(obj);
+                return; 
+            }
+            
+            // Lógica do Limite (Linha Imaginária)
+            const bound = obj.getBoundingRect();
+            
+            if (bound.top + bound.height > canvas.height) {
+                obj.set('top', canvas.height - bound.height + (obj.top - bound.top));
+            }
+            if (bound.top < 0) {
+                obj.set('top', 0 + (obj.top - bound.top));
+            }
+            if (bound.left < 0) {
+                obj.set('left', 0 + (obj.left - bound.left));
+            }
+            if (bound.left + bound.width > canvas.width) {
+                obj.set('left', canvas.width - bound.width + (obj.left - bound.left));
+            }
+            
+            isObjectModified = true;
         });
 
+
+        // --- 7. LÓGICA DE HISTÓRICO (UNDO/REDO) ---
+
+        canvas.on('object:modified', (e) => {
+            saveState();
+        });
+
+        canvas.on('mouse:up', (e) => {
+            if (isObjectModified) {
+                isObjectModified = false;
+                saveState();
+            }
+        });
+
+        function updateButtonStates() {
+            btnUndo.disabled = (historyIndex <= 0);
+            btnRedo.disabled = (historyIndex >= history.length - 1);
+        }
+
+        function saveState() {
+            if (isUndoRedo) return; 
+            history = history.slice(0, historyIndex + 1);
+            const state = canvas.toJSON(['dimensionId', 'isHandle', 'extLine', 'isHorizontal']);
+            history.push(state);
+            historyIndex = history.length - 1;
+            updateButtonStates();
+        }
+
+        function loadState(state) {
+            isUndoRedo = true;
+            canvas.loadFromJSON(state, () => {
+                canvas.renderAll();
+                isUndoRedo = false;
+                updateButtonStates();
+            });
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                loadState(history[historyIndex]);
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                loadState(history[historyIndex]);
+            }
+        }
+
+        btnUndo.addEventListener('click', undo);
+        btnRedo.addEventListener('click', redo);
+
+
+        // --- 8. CARGA INICIAL ---
+        loadGroups(); 
+        
+        // MUDANÇA: Preenche título e data automaticamente ao carregar
+        const { inputFormat, displayFormat } = getFormattedDate();
+        
+        // Define os valores dos inputs
+        titleInput.value = "Orçamento";
+        dateInput.value = inputFormat;
+        
+        // Sincroniza o rodapé com os valores
+        footerTitle.textContent = "Orçamento";
+        footerDate.textContent = displayFormat;
+        
+        saveState(); // Salva o estado inicial (canvas em branco)
+        updateButtonStates(); 
+
     });
-    // --- FIM DO CÓDIGO DA APLICAÇÃO ---
-</script>
+    </script>
 </body>
 </html>
