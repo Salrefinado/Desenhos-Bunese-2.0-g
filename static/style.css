@@ -1,6 +1,5 @@
 /* --- ESTILOS GERAIS --- */
 * {
-    /* MUDANÇA: Garante dimensionamento mais previsível */
     box-sizing: border-box; 
 }
 
@@ -10,39 +9,56 @@ body, html {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: #f0f2f5;
     color: #333;
+    /* MUDANÇA: Oculta o scroll principal, pois as áreas terão scroll próprio */
     overflow: hidden; 
+    height: 100%;
 }
 
 .app-container {
     display: flex;
+    /* MUDANÇA: Ocupa 100% da altura da tela */
     height: 100vh;
-    width: 100vw;
+    width: 100%;
+    background-color: #fdfdfd;
 }
 
 .section {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     border-bottom: 1px solid #ddd;
-    padding-bottom: 20px;
+    padding-bottom: 10px;
+}
+.section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
 }
 
 /* --- PAINEL DE CONTROLES (ESQUERDA) --- */
 .controls-panel {
-    width: 300px;
+    width: 350px;
     background-color: #ffffff;
-    padding: 20px;
+    padding: 15px;
+    /* MUDANÇA: Altura 100% e scroll independente */
+    height: 100vh;
     overflow-y: auto; 
     border-right: 1px solid #ccc;
     box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    /* Impede que o painel encolha */
+    flex-shrink: 0; 
 }
 
-.controls-panel h2, .controls-panel h3 {
+.controls-panel h2 {
     margin-top: 0;
-    color: #111;
+    margin-bottom: 10px;
+}
+.controls-panel h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1em;
 }
 
 .info-inputs label {
     display: block;
-    margin-top: 10px;
+    margin-top: 5px;
     font-weight: 600;
     font-size: 0.9em;
 }
@@ -56,37 +72,42 @@ body, html {
     border-radius: 4px;
 }
 
-/* --- MUDANÇA: Estilo base de botões (Simetria) --- */
+/* Estilo base de botões */
 button {
     display: block;
     width: 100%;
-    padding: 10px 15px;
-    margin-bottom: 8px;
+    padding: 9px 12px;
+    margin-bottom: 6px;
     border: none;
     border-radius: 5px;
     background-color: #007bff;
     color: white;
-    font-size: 1em;
+    font-size: 0.95em;
     font-weight: 600;
     cursor: pointer;
-    text-align: center; /* Padrão centralizado para simetria */
+    text-align: center;
     transition: background-color 0.2s;
 }
 
 button:hover {
     background-color: #0056b3;
 }
+button:disabled {
+    background-color: #c0c0c0;
+    cursor: not-allowed;
+}
 
-/* --- MUDANÇA: Botões de navegação de imagens --- */
+
+/* Botões de navegação de imagens */
 .nav-button {
     background-color: #6c757d;
-    text-align: left; /* Botões de navegação ficam à esquerda */
+    text-align: left;
 }
 .nav-button:hover {
     background-color: #5a6268;
 }
 
-/* --- MUDANÇA: Botão Voltar --- */
+/* Botão Voltar */
 .nav-back-button { 
     background-color: transparent;
     color: #007bff;
@@ -95,6 +116,15 @@ button:hover {
 }
 .nav-back-button:hover {
     background-color: #f0f2f5;
+}
+
+/* Painel de Histórico (Undo/Redo) */
+.history-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+.history-buttons button {
+    width: 48%;
 }
 
 /* Botões de Ação */
@@ -109,32 +139,79 @@ button:hover {
 
 
 /* --- ÁREA DO CANVAS (DIREITA) --- */
-.canvas-container {
+
+/* MUDANÇA: Wrapper para o scroll independente da área de trabalho */
+.main-content-area {
     flex: 1; 
+    height: 100vh;
+    overflow-y: auto;
+    background-color: #f0f2f5;
+}
+
+.canvas-container {
+    /* MUDANÇA: Centraliza o canvas e o rodapé na área de scroll */
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    padding: 20px;
-    overflow: auto; 
+    /* Adiciona espaçamento superior e inferior na área de scroll */
+    padding: 30px 20px; 
 }
 
 #c {
     border: 1px solid #999;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     background-color: #ffffff;
+    /* Garante que o canvas não encolha */
+    flex-shrink: 0;
 }
+
+/* MUDANÇA: Rodapé (Título e Data) abaixo do Canvas */
+.canvas-footer {
+    width: 595px; /* Mesma largura do canvas */
+    padding: 15px 10px;
+    display: flex;
+    justify-content: space-between; /* Lado a lado */
+    background-color: #fdfdfd;
+    border: 1px solid #ccc;
+    border-top: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.footer-text {
+    font-size: 14px;
+    font-family: 'Helvetica, Arial, sans-serif';
+    color: #333;
+    font-weight: 600;
+}
+
 
 /* --- REGRAS DE IMPRESSÃO --- */
 @media print {
-    body > *:not(.canvas-container) {
-        display: none;
+    body, html {
+        overflow: visible;
+        height: auto;
+        background-color: #fff;
+    }
+    
+    .app-container {
+        display: block;
+        height: auto;
     }
 
-    .canvas-container, body, html {
-        padding: 0;
-        margin: 0;
+    /* Oculta tudo, exceto a área do canvas e seu rodapé */
+    body > *:not(.main-content-area) {
+        display: none;
+    }
+    .controls-panel {
+        display: none;
+    }
+    .main-content-area {
         overflow: visible;
-        background-color: #fff;
+        height: auto;
+        padding: 0;
+    }
+    .canvas-container {
+        padding: 0;
     }
 
     #c {
@@ -142,9 +219,14 @@ button:hover {
         box-shadow: none;
         margin: 0;
         padding: 0;
-        width: 210mm;
-        height: 297mm;
-        page-break-before: always;
-        page-break-after: always;
+        width: 100%;
+        height: auto;
+    }
+
+    .canvas-footer {
+        box-shadow: none;
+        border: none;
+        justify-content: space-between;
+        width: 100%;
     }
 }
