@@ -1,1845 +1,248 @@
-/* --- 
-[ATUALIZAÇÃO VISUAL - LINHA DE PRODUÇÃO & MODAL ESPECÍFICO]
-- Paleta de cores corporativa (Azul escuro + Cinzas)
-- Status com estilo "Tag" (Fundo claro + Texto escuro)
-- Novos Status de Produção (Pintura, Epóxi, Materiais, etc.)
-- Estilos do Modal Específico (Árvore de Colaboradores)
-- CORREÇÃO: Z-Index para modais sobrepostos
---- */
-
-:root {
-/* Paleta Principal (Profissional/Corporativa) */
---color-primary: #0a4a9b; /* Azul Corporativo Escuro */
---color-primary-dark: #083b7a;
---color-primary-light: #e6eef8; /* Azul BEM claro para fundos */
---color-text-primary: #1f2329; /* Quase preto */
---color-text-secondary: #5a6470; /* Cinza para subtextos */
---color-text-on-primary: #ffffff; /* Texto branco para botões */
-
---color-background: #f8f9fc; /* Fundo principal mais limpo */
---color-board-bg: #ffffff;
---color-header: #ffffff;
---color-border: #eef0f4; /* Borda mais sutil */
-
-/* Sombra Profissional */
---color-shadow-light: rgba(60, 64, 67, 0.1) 0px 1px 2px 0px;
---color-shadow-medium: rgba(60, 64, 67, 0.08) 0px 2px 6px 2px;
-
-/* Ações */
---color-danger: #d93025;
---color-danger-light: #fbeae9;
---color-success: #1e8e3e;
---color-success-light: #e6f4ea;
-
-/* --- Paleta de Status (Estilo "Tag") --- */
-
-/* Status Etapas (Orçamento) */
---status-default-bg: #f3f4f6;
---status-default-text: #4b5563;
-
---status-visita-bg: #fffbeb;
---status-visita-text: #b45309;
-
---status-projetar-bg: #fff7ed;
---status-projetar-text: #c2410c;
-
---status-producao-bg: #e0f2fe; /* Azul claro */
---status-producao-text: #075985; /* Azul escuro */
-
---status-prontos-bg: var(--color-success-light);
---status-prontos-text: var(--color-success);
-
---status-standby-bg: #f3f4f6;
---status-standby-text: #374151;
-
---status-instalado-bg: #e6f4ea;
---status-instalado-text: #1e8e3e;
-
---status-liberado-bg: #f5f3ff;
---status-liberado-text: #5b21b6;
-
---status-perigo-bg: var(--color-danger-light);
---status-perigo-text: var(--color-danger);
-
-/* --- NOVOS STATUS DE PRODUÇÃO (DETALHADOS) --- */
-
-/* Fila de Produção (Neutro/Cinza) */
---status-fila-bg: #f3f4f6;
---status-fila-text: #4b5563;
-
-/* Iniciou a Produção (Azul) */
---status-iniciou-bg: #e0f2fe;
---status-iniciou-text: #0369a1;
-
-/* Produção Finalizada (Verde) */
---status-finalizada-bg: #dcfce7;
---status-finalizada-text: #15803d;
-
-/* Fase de Acabamento (Roxo Claro) */
---status-acabamento-bg: #f3e8ff;
---status-acabamento-text: #7e22ce;
-
-/* Pintura na Produção (Laranja) */
---status-pintura-bg: #ffedd5;
---status-pintura-text: #c2410c;
-
-/* Pintura EPOXI (Laranja Escuro / Marrom) */
---status-epoxi-bg: #fed7aa;
---status-epoxi-text: #9a3412;
-
-/* Reforma em Andamento (Amarelo) */
---status-reforma-bg: #fef9c3;
---status-reforma-text: #a16207;
-
-/* Aguardando Vidro/Pedra (Ciano) */
---status-vidro-bg: #cffafe;
---status-vidro-text: #0e7490;
-
-/* Aguardando Materiais (Vermelho Claro / Alerta) */
---status-materiais-bg: #fee2e2;
---status-materiais-text: #b91c1c;
-}
-
-/* --- Base --- */
-body {
-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-margin: 0;
-background-color: var(--color-background);
-color: var(--color-text-primary);
-display: flex;
-flex-direction: column;
-height: 100vh;
--webkit-font-smoothing: antialiased;
--moz-osx-font-smoothing: grayscale;
-}
-
-/* --- Animações (Keyframes) --- */
-@keyframes fadeIn {
-from { opacity: 0; }
-to { opacity: 1; }
-}
-
-@keyframes fadeScaleIn {
-from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
-to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
-/* Animação de Destaque para Busca */
-@keyframes highlight-flash {
-0% { background-color: var(--color-primary-light); }
-100% { background-color: transparent; }
-}
-.row-highlight {
-/* Aplica a animação (via JS) */
-animation: highlight-flash 1.5s ease-out;
-}
-
-/* --- Estilos da Página de Login --- */
-body.login-page {
-justify-content: center;
-align-items: center;
-background-color: var(--color-background);
-}
-.login-container {
-background-color: var(--color-board-bg);
-padding: 30px 40px;
-border-radius: 12px;
-box-shadow: var(--color-shadow-medium);
-width: 100%;
-max-width: 400px;
-box-sizing: border-box;
-}
-.login-form {
-display: flex;
-flex-direction: column;
-gap: 15px;
-}
-.login-form h2 {
-text-align: center;
-color: var(--color-text-primary);
-margin: 0 0 10px 0;
-}
-.login-form label {
-font-weight: 500;
-font-size: 0.9rem;
-}
-.login-form input[type="email"],
-.login-form input[type="password"],
-.login-form input[type="text"] {
-width: 100%;
-padding: 12px;
-border: 1px solid var(--color-border);
-border-radius: 8px;
-font-size: 1rem;
-box-sizing: border-box;
-transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.login-form input[type="email"]:focus,
-.login-form input[type="password"]:focus,
-.login-form input[type="text"]:focus {
-outline: none;
-border-color: var(--color-primary);
-box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-.login-options {
-display: flex;
-align-items: center;
-gap: 8px;
-font-size: 0.9rem;
-}
-.login-options label {
-font-weight: 400;
-color: var(--color-text-secondary);
-}
-.login-btn {
-padding: 12px;
-font-size: 1rem;
-margin-top: 5px;
-}
-.google-btn {
-display: flex;
-justify-content: center;
-align-items: center;
-gap: 10px;
-padding: 10px;
-font-size: 0.95rem;
-text-decoration: none;
-}
-.google-btn img {
-width: 18px;
-height: 18px;
-}
-.toggle-form {
-font-size: 0.9rem;
-text-align: center;
-color: var(--color-text-secondary);
-}
-.toggle-form a {
-color: var(--color-primary);
-text-decoration: none;
-font-weight: 500;
-}
-.login-error {
-color: var(--color-danger);
-background-color: var(--color-danger-light);
-border: 1px solid var(--color-danger);
-padding: 10px;
-border-radius: 8px;
-text-align: center;
-font-size: 0.9rem;
-}
-
-
-/* --- Classes de Botão Globais --- */
-.btn {
-display: inline-flex;
-align-items: center;
-justify-content: center;
-gap: 6px;
-padding: 9px 16px; 
-font-size: 0.95rem;
-font-weight: 500;
-line-height: 1.5; 
-border: 1px solid transparent;
-border-radius: 8px;
-cursor: pointer;
-text-decoration: none;
-transition: all 0.2s ease-in-out;
-white-space: nowrap;
-transform: translateY(0);
+/* --- ESTILOS GERAIS --- */
+* {
 box-sizing: border-box; 
 }
-.btn:hover {
-transform: translateY(-1px);
-box-shadow: var(--color-shadow-light);
-}
 
-.btn-primary {
-background-color: var(--color-primary);
-color: var(--color-text-on-primary);
-}
-.btn-primary:hover {
-background-color: var(--color-primary-dark);
-}
-
-.btn-secondary {
-background-color: var(--color-board-bg);
-color: var(--color-text-secondary);
-border-color: var(--color-border);
-}
-.btn-secondary:hover {
-background-color: #f9f9f9;
-border-color: #d1d5db; /* Cinza mais escuro */
-}
-
-/* --- Header --- */
-header {
-background-color: var(--color-header);
-padding: 12px 25px;
-border-bottom: 1px solid var(--color-border);
-display: flex;
-justify-content: space-between;
-align-items: center;
-box-shadow: var(--color-shadow-light);
-flex-shrink: 0;
-position: relative;
-z-index: 100;
-}
-
-.header-left h1 {
-font-size: 1.5rem;
-color: var(--color-text-primary);
+body, html {
 margin: 0;
-}
-.header-link {
-color: var(--color-text-primary);
-text-decoration: none;
-transition: color 0.2s ease;
-}
-.header-link:hover {
-color: var(--color-primary);
-}
-
-.header-right {
-display: flex;
-align-items: center;
-gap: 20px;
-flex-grow: 1;
-justify-content: flex-end;
-}
-
-.header-actions,
-.header-nav {
-display: flex;
-align-items: center; /* Alinha verticalmente os botões */
-gap: 12px;
-flex-shrink: 0;
-}
-
-.file-input-hidden {
-display: none;
-}
-
-.btn-upload-label {
-display: inline-flex;
-}
-
-
-/* --- Estrutura do Quadro (Lista Vertical de Grupos) --- */
-.workflow-board {
-padding: 25px; /* Mais espaçamento */
-overflow-y: auto;
-flex-grow: 1;
-}
-.monday-group {
-background-color: var(--color-board-bg);
-border-radius: 12px; /* Mais arredondado */
-margin-bottom: 25px;
-border: 1px solid var(--color-border);
-box-shadow: var(--color-shadow-medium);
-position: relative;
-z-index: 1;
-/* Transição para elevação do dropdown */
-transition: z-index 0.3s ease;
-}
-.group-title {
-font-size: 1.4rem;
-font-weight: 600;
-padding: 18px 25px; /* Mais padding */
-margin: 0;
-color: var(--color-primary);
-cursor: pointer;
-position: relative;
-}
-.group-title::before {
-content: '▼';
-font-size: 0.8em;
-margin-right: 10px;
-display: inline-block;
-transition: transform 0.3s ease-in-out; /* Animação mais suave */
-}
-.monday-group.collapsed .group-title::before {
-transform: rotate(-90deg);
-}
-
-/* --- Animação de Grupo --- */
-.table-wrapper {
-overflow-x: auto;
-overflow-y: hidden; /* Previne scrollbar vertical durante a animação */
-max-height: 2000px; /* Um valor alto o suficiente */
-transition: max-height 0.4s ease-in-out;
-}
-.monday-group.collapsed .table-wrapper {
-max-height: 0; /* Anima para altura 0 */
-border-top: none; 
-}
-
-
-/* --- Estrutura da Tabela (Estilo Monday) --- */
-.monday-table {
-width: 100% !important;
-min-width: 0 !important; /* Permite que a tabela seja menor que a tela */
-border-collapse: collapse;
-}
-
-.monday-thead th {
-background-color: #fdfdfd; /* Fundo do header da tabela mais limpo */
-text-align: left;
-padding: 14px 20px; /* Mais padding */
-font-size: 0.8rem;
-color: var(--color-text-secondary);
-text-transform: uppercase;
-letter-spacing: 0.5px;
-border-bottom: 2px solid var(--color-border);
-white-space: nowrap;
-vertical-align: middle;
-}
-.monday-row td {
-padding: 16px 20px; /* Mais padding */
-border-bottom: 1px solid var(--color-border);
-font-size: 0.95rem;
-vertical-align: middle;
-color: var(--color-text-primary);
-}
-.monday-row {
-transition: all 0.2s ease-in-out;
-opacity: 1;
-position: relative;
-z-index: 2;
-}
-.monday-row:hover {
-background-color: #fff;
-box-shadow: var(--color-shadow-medium);
-z-index: 10; /* Fica acima das outras linhas */
-}
-
-
-/* --- Botão de Ordenação --- */
-.btn-sort-date {
-display: inline-flex;
-align-items: center;
-justify-content: center;
-width: 20px;
-height: 20px;
-border-radius: 50%;
-border: 1px solid #ccc;
+padding: 0;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 background-color: #f0f2f5;
-color: var(--color-text-secondary);
-font-size: 14px;
-line-height: 1;
-margin-left: 8px;
-cursor: pointer;
-transition: background-color 0.2s ease;
-vertical-align: middle;
-}
-.btn-sort-date:hover {
-background-color: #e6e9ef;
+color: #333;
+/* MUDANÇA: Oculta o scroll principal, pois as áreas terão scroll próprio */
+overflow: hidden; 
+height: 100%;
 }
 
-/* --- Animação "Buraco Negro" --- */
-@keyframes fade-out-move {
-0% {
-opacity: 1;
-transform: scale(1);
-}
-100% {
-opacity: 0;
-transform: scale(0.8);
-}
-}
-.monday-row.row-moving {
-animation: fade-out-move 0.5s ease-out forwards;
-}
-
-
-/* --- ALINHAMENTO DAS COLUNAS --- */
-
-/* 1. Coluna Orçamento */
-.monday-thead th:nth-child(1),
-.monday-row td:nth-child(1) {
-width: 300px !important;
-min-width: 300px !important;
-max-width: 300px !important;
-box-sizing: border-box;
-}
-
-/* 2. Coluna Link */
-.monday-thead th:nth-child(2),
-.monday-row td:nth-child(2) {
-width: 40px !important;
-min-width: 40px !important;
-max-width: 40px !important;
-text-align: center;
-padding-left: 0 !important;
-padding-right: 0 !important;
-box-sizing: border-box;
-vertical-align: middle !important;
-}
-/* 3. Coluna Arquivos */
-.monday-thead th:nth-child(3),
-.col-arquivos {
-width: 180px !important;
-min-width: 180px !important;
-max-width: 180px !important;
-box-sizing: border-box;
-text-align: center;
-vertical-align: top;
-padding-top: 14px;
-white-space: nowrap;
-overflow: hidden;
-}
-
-/* 4. Coluna Status (Geral) */
-.col-status, 
-.col-status-final {
-width: 300px !important;
-min-width: 300px !important;
-max-width: 300px !important;
-box-sizing: border-box;
-padding-right: 10px !important;
-padding-left: 50px !important;
-position: relative;
-z-index: 5;
-}
-
-/* Ajuste específico para o Cabeçalho da 4ª Coluna */
-.monday-thead th:nth-child(4) {
-width: auto !important; 
-min-width: 100px !important; 
-padding-left: 20px !important; 
-}
-
-/* 5. Coluna Data Limite (Linha de Produção) */
-.monday-thead th:nth-child(5) {
-min-width: 160px !important;
-white-space: nowrap;
-}
-/* Colunas de dados padrão (5, 6, etc...) */
-.col-data {
-font-size: 0.9rem;
-color: var(--color-text-secondary);
-min-width: 140px;
-}
-.col-data-long-text {
-font-size: 0.9rem;
-color: var(--color-text-secondary);
-min-width: 200px;
-max-width: 300px;
-white-space: normal;
-line-height: 1.4;
-}
-.col-data-date {
-font-size: 0.9rem;
-color: var(--color-text-primary); /* Data mais escura */
-font-weight: 500;
-}
-.monday-row.sortable-ghost {
-background-color: #e6e9ef;
-opacity: 0.7;
-}
-.monday-row.sortable-chosen {
-cursor: grabbing;
-}
-.monday-row {
-cursor: grab;
-}
-.monday-row:last-child td {
-border-bottom: none;
-}
-
-/* --- Fonte do orçamento --- */
-.monday-row .col-orcamento {
-font-size: 1.2rem; 
-font-weight: 500; 
-color: var(--color-text-primary); 
-line-height: 1.3;
-}
-.col-orcamento .orc-cliente {
-font-weight: 500; 
-color: var(--color-text-primary); 
-font-size: 1em;
-}
-.col-orcamento .orc-numero {
-font-weight: 500;
-color: var(--color-text-primary);
-}
-
-
-.last-updated-info {
-font-size: 0.8rem;
-font-weight: 500;
-color: var(--color-text-secondary);
-line-height: 1.4;
-margin-top: 4px;
-}
-.public-link-icon {
-font-size: 0.8em;
-text-decoration: none;
-margin-left: 8px;
-opacity: 0.6;
-transition: opacity 0.2s ease;
-}
-.public-link-icon:hover {
-opacity: 1;
-}
-
-/* CSS Link Público */
-.col-public-link .public-link-icon {
-font-size: 1.5rem; /* Tamanho maior */
-margin-left: 0;
-padding: 4px;
-display: inline-block;
-}
-/* Remove o link da célula de orçamento */
-.col-orcamento .public-link-icon {
-display: none;
-}
-
-
-.standby-info-icon {
-font-size: 0.8em;
-margin-left: 4px;
-cursor: help;
-color: var(--status-standby-text);
-}
-
-
-/* === ESTILOS PARA O RESUMO DA LINHA DE PRODUÇÃO (NA TABELA) === */
-.col-tarefas-producao {
-display: table-cell !important; 
-vertical-align: top !important;
-min-width: 350px;
-position: relative;
-z-index: 5;
-padding: 16px 20px !important; 
-box-sizing: border-box;
-cursor: pointer; /* Indica que é clicável */
-transition: background-color 0.2s ease;
-}
-.col-tarefas-producao:hover {
-background-color: #f3f4f6; /* Feedback visual ao passar o mouse */
-}
-
-/* Conteúdo interno da célula de resumo */
-.producao-summary-container {
+.app-container {
 display: flex;
-flex-direction: column;
-gap: 6px;
-font-size: 0.9rem;
-}
-.producao-summary-colaboradores {
-font-weight: 600;
-color: var(--color-text-primary);
-}
-.producao-summary-itens {
-color: var(--color-text-secondary);
-font-size: 0.85rem;
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
-max-width: 300px;
-}
-.producao-summary-status {
-/* Estilo "Tag" para o status geral */
-display: inline-block;
-padding: 4px 10px;
-border-radius: 12px;
-font-size: 0.8rem;
-font-weight: 600;
-width: fit-content;
+/* MUDANÇA: Ocupa 100% da altura da tela */
+height: 100vh;
+width: 100%;
+background-color: #fdfdfd;
 }
 
-
-/* === ESTILOS PARA O MODAL ESPECÍFICO (ÁRVORE DE TAREFAS) === */
-.modal-tarefas-tree {
-display: flex;
-flex-direction: column;
-gap: 15px;
-max-height: 400px;
-overflow-y: auto;
-padding-right: 5px;
-}
-
-.tarefa-group-block {
-background-color: var(--color-background);
-border-radius: 8px;
-padding: 12px;
-border: 1px solid var(--color-border);
-}
-
-.tarefa-group-title {
-font-size: 1rem;
-font-weight: 600;
-color: var(--color-primary);
+.section {
 margin-bottom: 10px;
-border-bottom: 1px solid #e5e7eb;
-padding-bottom: 5px;
+border-bottom: 1px solid #ddd;
+padding-bottom: 10px;
 }
-
-.tarefa-item-row {
-display: grid;
-grid-template-columns: 1fr auto; /* Item (expande) | Status (fixo) */
-gap: 15px;
-align-items: center;
-margin-bottom: 8px;
-background-color: white;
-padding: 8px;
-border-radius: 6px;
-box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-.tarefa-item-row:last-child {
+.section:last-child {
+border-bottom: none;
 margin-bottom: 0;
 }
 
-.tarefa-item-name {
-font-size: 0.9rem;
-color: var(--color-text-primary);
-font-weight: 500;
-line-height: 1.3;
+/* --- PAINEL DE CONTROLES (ESQUERDA) --- */
+/* --- PAINEL de CONTROLES (ESQUERDA) --- */
+.controls-panel {
+width: 350px;
+background-color: #ffffff;
+padding: 15px;
+/* MUDANÇA: Altura 100% e scroll independente */
+height: 100vh;
+overflow-y: auto; 
+border-right: 1px solid #ccc;
+box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+/* Impede que o painel encolha */
+flex-shrink: 0; 
 }
 
-/* Dropdown dentro do modal */
-.tarefa-item-status-selector {
-width: 200px; /* Largura fixa para o dropdown */
-position: relative;
+.controls-panel h2 {
+margin-top: 0;
+margin-bottom: 10px;
 }
-/* Reutiliza .status-display e .status-dropdown, mas ajusta para o modal */
-.tarefa-item-status-selector .status-display {
-font-size: 0.8rem;
-padding: 4px 10px;
-}
-/* === FIM: ESTILOS PARA O MODAL ESPECÍFICO === */
-
-
-/* --- Célula de Arquivos --- */
-.file-pdf-icon-button {
-display: inline-block;
-width: 32px;
-height: 32px;
-background-size: contain;
-background-repeat: no-repeat;
-background-position: center;
-border: none;
-background-color: transparent;
-padding: 0;
-cursor: pointer;
-transition: transform 0.2s ease, opacity 0.2s ease;
-opacity: 0.6; 
-margin: 0 auto; 
-}
-.file-pdf-icon-button:hover {
-opacity: 1;
-transform: scale(1.1);
-}
-.file-pdf-icon-button.has-files {
-opacity: 1; 
+.controls-panel h3 {
+margin-top: 0;
+margin-bottom: 10px;
+font-size: 1.1em;
 }
 
-
-.btn-agendar {
-background-color: #e80000;
-color: white;
-border: none;
-padding: 6px 12px;
-border-radius: 20px;
-font-weight: 600;
-cursor: pointer;
-font-size: 0.85rem;
-}
-.btn-agendar:hover { 
-background-color: #1a7431;
-transform: translateY(-1px);
-}
-
-
-.status-selector {
-position: relative;
-width: 100%; /* Ocupa o espaço da célula */
-}
-
-.status-display {
-padding: 6px 12px; /* Mais padding lateral */
-border-radius: 20px; /* "Pill shape" */
-font-weight: 600;
-cursor: pointer;
-font-size: 0.85rem;
-transition: all 0.2s ease;
-display: flex;
-justify-content: space-between;
-align-items: center;
-border: 1px solid transparent;
-}
-.status-display:hover {
-transform: scale(1.03);
-box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-.status-display::after {
-content: '▼';
-font-size: 0.7em;
-margin-left: 8px;
-transform: scaleY(0.8);
-opacity: 0.7;
-}
-
-.status-dropdown {
-display: none;
-position: absolute;
-top: 100%;
-left: 0;
-width: 100%;
-background-color: white;
-border: 1px solid #d1d5db; /* Borda mais escura */
-border-radius: 8px;
-box-shadow: var(--color-shadow-medium);
-z-index: 50;
-margin-top: 4px;
-max-height: 250px;
-overflow-y: auto;
-padding: 4px; /* Espaço interno */
-}
-
-.status-selector.active .status-dropdown {
+.info-inputs label {
 display: block;
-animation: fadeIn 0.1s ease-out;
+margin-top: 5px;
+font-weight: 600;
+font-size: 0.9em;
 }
 
-.status-option {
-padding: 8px 12px;
-font-size: 0.9rem;
-color: var(--color-text-primary);
-cursor: pointer;
-border-radius: 6px; /* Arredondado interno */
+.info-inputs input[type="text"],
+.info-inputs input[type="date"] {
+width: 100%;
+padding: 8px;
+margin-top: 5px;
+border: 1px solid #ccc;
+border-radius: 4px;
 }
-.status-option:hover {
-background-color: var(--color-background);
-}
-.status-option.selected {
-background-color: var(--color-primary-dark);
+
+/* Estilo base de botões */
+button {
+display: block;
+width: 100%;
+padding: 9px 12px;
+margin-bottom: 6px;
+border: none;
+border-radius: 5px;
+background-color: #007bff;
 color: white;
+font-size: 0.95em;
 font-weight: 600;
-}
-
-/* --- [ATUALIZAÇÃO DE CORES DE STATUS] --- */
-
-/* NOVOS STATUS DE TAREFA (Usados no Modal e Resumo) */
-.status-option[data-value="Fila de produção"], .status-display[data-status-value="Fila de produção"] { 
-color: var(--status-fila-text); background-color: var(--status-fila-bg); border-color: var(--color-border);
-}
-.status-option[data-value="Iniciou a produção"], .status-display[data-status-value="Iniciou a produção"] { 
-color: var(--status-iniciou-text); background-color: var(--status-iniciou-bg); border-color: #bae6fd;
-}
-.status-option[data-value="Produção Finalizada"], .status-display[data-status-value="Produção Finalizada"] { 
-color: var(--status-finalizada-text); background-color: var(--status-finalizada-bg); border-color: #bbf7d0;
-}
-.status-option[data-value="Fase de acabamento"], .status-display[data-status-value="Fase de acabamento"] { 
-color: var(--status-acabamento-text); background-color: var(--status-acabamento-bg); border-color: #e9d5ff;
-}
-.status-option[data-value="Pintura na Produção"], .status-display[data-status-value="Pintura na Produção"] { 
-color: var(--status-pintura-text); background-color: var(--status-pintura-bg); border-color: #fed7aa;
-}
-.status-option[data-value="Pintura EPOXI"], .status-display[data-status-value="Pintura EPOXI"] { 
-color: var(--status-epoxi-text); background-color: var(--status-epoxi-bg); border-color: #fdba74;
-}
-.status-option[data-value="Reforma em Andamento"], .status-display[data-status-value="Reforma em Andamento"] { 
-color: var(--status-reforma-text); background-color: var(--status-reforma-bg); border-color: #fde047;
-}
-.status-option[data-value="Aguardando Vidro/Pedra"], .status-display[data-status-value="Aguardando Vidro/Pedra"] { 
-color: var(--status-vidro-text); background-color: var(--status-vidro-bg); border-color: #a5f3fc;
-}
-.status-option[data-value="Aguardando Materiais"], .status-display[data-status-value="Aguardando Materiais"] { 
-color: var(--status-materiais-text); background-color: var(--status-materiais-bg); border-color: #fecaca;
-}
-
-/* Mantidos (Outros Grupos) */
-.status-option[data-value="StandBy"], .status-display[data-status-value="StandBy"], 
-.status-display[data-status-value="Standby"] { color: var(--status-standby-text); background-color: var(--status-standby-bg); border-color: var(--color-border); }
-
-/* Cores Orçamento (Display) */
-.status-display[data-status-value="Orçamento Aprovado"],
-.status-display[data-status-value="Agendar Visita"] {
-background-color: var(--status-default-bg);
-color: var(--status-default-text);
-border-color: var(--color-border);
-}
-.status-display[data-status-value="Visita Agendada"],
-.status-display[data-status-value="Mandar para Produção"] {
-background-color: var(--status-visita-bg);
-color: var(--status-visita-text);
-border-color: #fde68a;
-}
-.status-display[data-status-value="Desenhar"] {
-background-color: var(--status-perigo-bg);
-color: var(--status-perigo-text);
-border-color: #fecaca;
-}
-.status-display[data-status-value="Em Desenho"],
-.status-display[data-status-value="Projeto Concluído"], /* [ATUALIZADO] */
-.status-display[data-status-value="Aprovado para Produção"],
-.status-display[data-status-value="Produzir"] {
-background-color: var(--status-projetar-bg);
-color: var(--status-projetar-text);
-border-color: #fed7aa;
-}
-.status-display[data-status-value="Em Produção"] {
-background-color: var(--status-producao-bg);
-color: var(--status-producao-text);
-border-color: #bae6fd;
-}
-.status-display[data-status-value="Agendar Instalação/Entrega"],
-.status-display[data-status-value="Instalação Agendada"] {
-background-color: var(--status-prontos-bg);
-color: var(--status-prontos-text);
-border-color: #bbf7d0;
-}
-.status-display[data-status-value="Instalado"],
-.status-display[data-status-value="Entregue"] {
-background-color: var(--status-instalado-bg);
-color: var(--status-instalado-text);
-border-color: #bbf7d0;
-}
-.status-display[data-status-value="Liberado"] {
-background-color: var(--status-liberado-bg);
-color: var(--status-liberado-text);
-border-color: #ddd6fe;
-}
-.status-display[data-status-value="Aguardando Cliente"],
-.status-display[data-status-value="Aguardando Arq/Eng"],
-.status-display[data-status-value="Aguardando Obra"],
-.status-display[data-status-value="Parado"] {
-background-color: var(--status-standby-bg);
-color: var(--status-standby-text);
-border-color: var(--color-border);
-}
-
-
-/* --- [REVISÃO PROFISSIONAL] Estilos dos Modais --- */
-.modal-overlay {
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-background-color: rgba(0,0,0,0.4); /* Mais escuro */
-z-index: 1000;
-transition: opacity 0.2s ease-in-out;
-opacity: 1;
-}
-.modal-overlay.hidden {
-opacity: 0;
-pointer-events: none;
-}
-
-.modal {
-position: fixed;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%) scale(1);
-background-color: white;
-padding: 25px;
-border-radius: 12px; /* Mais arredondado */
-box-shadow: var(--color-shadow-medium);
-z-index: 1001;
-min-width: 350px;
-max-width: 600px;
-display: flex;
-flex-direction: column;
-gap: 15px;
-max-height: 90vh;
-overflow-y: auto;
-transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
-opacity: 1;
-}
-.modal.hidden {
-opacity: 0;
-transform: translate(-50%, -50%) scale(0.95); /* Animação de scale */
-pointer-events: none;
-}
-.modal h4 {
-margin: 0;
-font-size: 1.3rem;
-color: var(--color-text-primary);
-}
-.modal label {
-font-weight: 500;
-font-size: 0.9rem;
-}
-.modal input[type="datetime-local"],
-.modal input[type="date"],
-.modal input[type="time"],
-.modal input[type="text"],
-.modal input[type="file"],
-.modal input[type="number"],
-.modal select,
-.modal textarea {
-width: 100%;
-padding: 10px 12px;
-border: 1px solid var(--color-border);
-border-radius: 8px;
-font-size: 1rem;
-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-height: 40px; /* <<<< NOVA REGRA: Altura fixa para inputs */
-box-sizing: border-box; /* Garante que padding/border contem na altura */
-transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.modal textarea {
-min-height: 80px;
-height: auto; /* Reseta a altura fixa para textareas */
-resize: vertical;
-}
-
-/* --- [REVISÃO PROFISSIONAL] Modal de Criação (Botões) --- */
-
-#modal-criar-orcamento {
-max-width: 800px; /* Mais largo para comportar as colunas */
-}
-
-#modal-criar-orcamento form {
-display: flex;
-flex-direction: column;
-gap: 10px; /* Espaço entre os elementos do formulário */
-}
-
-/* Layout de linha flexível */
-.form-row {
-display: flex;
-flex-wrap: wrap; /* Permite quebrar a linha em telas pequenas */
-gap: 15px; /* Espaço entre os grupos na mesma linha */
-}
-
-.form-row .form-group {
-flex: 1 1 250px; /* Flex-grow, flex-shrink, flex-basis (para largura) */
-}
-
-/* Grupo de formulário genérico */
-.form-group {
-display: flex;
-flex-direction: column;
-gap: 5px;
-}
-
-
-.form-group label,
-.form-group-flex label {
-font-weight: 500;
-font-size: 0.9rem;
-margin-bottom: 2px;
-}
-
-/* Grupo de formulário para a linha de prazos */
-.form-group-flex {
-display: flex;
-flex-direction: column;
-gap: 5px;
-}
-
-.prazo-input-group {
-display: flex;
-align-items: center;
-gap: 8px; /* Espaço entre os botões e o input */
-height: 40px; /* Garante que o container tenha a altura dos inputs */
-}
-
-.form-group-flex .modal-quick-days {
-margin: 0; 
-display: flex; /* Garante que os botões fiquem em linha */
-gap: 8px;
-}
-
-.btn-quick-day {
-padding: 6px 10px; 
-font-size: 0.85rem;
-min-width: 40px; 
-width: 40px; /* <<<< LARGURA FIXA */
-height: 40px; /* <<<< ALTURA FIXA (igual ao input) */
-box-sizing: border-box;
-}
-
-/* Input de dias dentro do grupo de prazo */
-.prazo-input-group input[type="number"] {
-width: 80px; /* <<<< LARGURA DESEJADA */
-height: 40px; /* <<<< ALTURA FIXA (igual ao botão) */
-padding: 10px 12px;
-}
-
-
-/* Botões de seleção (Sim/Não) */
-.item-button-group {
-display: flex;
-flex-wrap: wrap;
-gap: 8px;
-height: 40px; /* <<<< ALTURA FIXA (para alinhar com os prazos) */
-align-items: center;
-}
-.btn-item-select {
-background-color: var(--color-background);
-border: 1px solid var(--color-border);
-color: var(--color-text-secondary);
-padding: 6px 12px;
-border-radius: 20px; 
 cursor: pointer;
-font-size: 0.85rem;
-font-weight: 500;
-transition: all 0.2s ease;
-height: 100%; /* <<<< Ocupa a altura do container (40px) */
-box-sizing: border-box;
-}
-.btn-item-select:hover {
-transform: translateY(-1px);
-border-color: #d1d5db;
-}
-.btn-item-select.selected {
-background-color: var(--color-primary-light);
-color: var(--color-primary);
-border-color: var(--color-primary);
-font-weight: 600;
-}
-
-
-/* --- Container da Barra de Pesquisa de Itens --- */
-.item-search-container {
-display: flex;
-flex-direction: column;
-gap: 5px;
-position: relative; /* Para o dropdown de resultados */
-}
-
-.form-group-search label {
-font-weight: 500;
-font-size: 0.9rem;
-margin-bottom: 2px;
-}
-
-.search-wrapper {
-display: flex;
-gap: 10px;
-}
-.search-wrapper input {
-flex-grow: 1; /* Ocupa o espaço disponível */
-}
-.search-wrapper button {
-flex-shrink: 0; /* Não encolhe */
-}
-
-/* Dropdown de resultados da busca de itens */
-.item-search-results {
-position: absolute;
-top: 100%;
-left: 0;
-width: calc(100% - 110px); /* Largura do input (100% - largura do botão - gap) */
-background-color: var(--color-board-bg);
-border: 1px solid var(--color-border);
-border-radius: 8px;
-box-shadow: var(--color-shadow-medium);
-z-index: 1050; /* Acima do modal */
-max-height: 250px;
-overflow-y: auto;
-padding: 4px;
-}
-.item-search-results.hidden {
-display: none;
-}
-.search-result-item-modal {
-padding: 10px 12px;
-font-size: 0.9rem;
-cursor: pointer;
-border-radius: 6px;
-}
-.search-result-item-modal:hover {
-background-color: var(--color-background);
-}
-.search-result-item-modal strong {
-color: var(--color-text-primary);
-}
-.search-result-item-modal span {
-font-size: 0.8rem;
-color: var(--color-text-secondary);
-margin-left: 8px;
-}
-
-
-/* --- Container das colunas de itens adicionados --- */
-.added-items-container {
-display: flex;
-gap: 15px;
-margin-top: 10px;
-min-height: 150px; /* Altura mínima para as colunas */
-}
-
-.added-items-column {
-flex: 1;
-border: 1px solid var(--color-border);
-border-radius: 8px;
-padding: 10px;
-background-color: var(--color-background);
-}
-.added-items-column h5 {
-margin: 0 0 10px 0;
-font-size: 1rem;
-color: var(--color-text-primary);
-border-bottom: 1px solid var(--color-border);
-padding-bottom: 5px;
-}
-
-.added-item-list {
-list-style: none;
-padding: 0;
-margin: 0;
-height: 150px; /* Altura fixa para scroll */
-overflow-y: auto;
-}
-
-.added-item-list li {
-background-color: #fff;
-padding: 8px 12px;
-border-radius: 6px;
-border: 1px solid var(--color-border);
-font-size: 0.9rem;
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 5px;
-word-break: break-word; /* Garante quebra de linha */
-}
-
-.btn-remove-added-item {
-background-color: var(--color-danger-light);
-color: var(--color-danger);
-border: 1px solid transparent;
-border-radius: 50%;
-width: 20px;
-height: 20px;
-font-size: 0.8rem;
-font-weight: bold;
-cursor: pointer;
-line-height: 18px;
 text-align: center;
-padding: 0;
-transition: all 0.2s ease;
-flex-shrink: 0;
-margin-left: 8px;
-}
-.btn-remove-added-item:hover {
-background-color: var(--color-danger);
-color: white;
+transition: background-color 0.2s;
 }
 
-.form-group-file-upload {
-position: relative;
+button:hover {
+background-color: #0056b3;
 }
-.form-group-file-upload input[type="file"] {
-display: none;
-}
-.btn-file-upload {
-background-color: var(--color-board-bg);
-color: var(--color-text-secondary);
-border-color: var(--color-border);
-width: 100%;
-cursor: pointer;
-font-weight: 500;
-text-align: left; /* Alinha o texto à esquerda */
-padding-left: 15px;
-height: 40px; /* Mesma altura dos outros inputs */
-line-height: 1.5; /* Alinha o texto verticalmente */
-}
-.btn-file-upload:hover {
-background-color: #f9f9f9;
-border-color: #d1d5db;
-}
-/* Texto quando um arquivo é selecionado */
-.btn-file-upload.file-selected {
-color: var(--color-text-primary);
-border-color: var(--color-success);
-font-weight: 600;
+button:disabled {
+background-color: #c0c0c0;
+cursor: not-allowed;
 }
 
 
-/* --- Itens Manuais (Antigo - agora usado no modal de arquivos) --- */
-.manual-item-list {
-list-style: none;
-padding: 0;
-margin: 10px 0 0 0;
-}
-.manual-item-list li {
-background-color: #f8f9fa;
-padding: 8px 12px;
-border-radius: 6px;
-border: 1px solid var(--color-border);
-font-size: 0.9rem;
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 5px;
-}
-.btn-remove-manual-item {
-background-color: var(--color-danger-light);
-color: var(--color-danger);
-border: 1px solid var(--color-danger);
-border-radius: 50%;
-width: 22px;
-height: 22px;
-font-size: 0.9rem;
-font-weight: bold;
-cursor: pointer;
-line-height: 20px;
-text-align: center;
-padding: 0;
-transition: all 0.2s ease;
-}
-.btn-remove-manual-item:hover {
-background-color: var(--color-danger);
-color: white;
-}
-
-/* --- Outros Modais --- */
-.modal-quick-days {
-display: flex;
-gap: 10px;
-}
-.modal-quick-days input[type="number"] {
-width: 70px;
-}
-.modal .modal-actions {
-display: flex;
-justify-content: flex-end;
-gap: 10px;
-margin-top: 10px;
-}
-.modal .modal-actions-center {
-display: flex;
-justify-content: center;
-gap: 10px;
-margin-top: 10px;
-}
-
-
-/* --- Página de Logs --- */
-.log-container {
-background-color: var(--color-board-bg);
-border-radius: 12px;
-padding: 25px;
-border: 1px solid var(--color-border);
-box-shadow: var(--color-shadow-medium);
-}
-.log-container h2 {
-color: var(--color-primary);
-margin: 0 0 10px 0;
-}
-.log-table {
-width: 100%;
-border-collapse: collapse;
-margin-top: 20px;
-}
-.log-table th, .log-table td {
-border: 1px solid var(--color-border);
-padding: 10px 12px;
+/* Botões de navegação de imagens */
+.nav-button {
+background-color: #6c757d;
 text-align: left;
-font-size: 0.9rem;
-vertical-align: top;
 }
-.log-table th {
-background-color: #fdfdfd;
-font-size: 0.8rem;
-text-transform: uppercase;
-color: var(--color-text-secondary);
-}
-.log-table td[data-label="Detalhes"] {
-word-break: break-word;
-}
-.log-table tr:nth-child(even) {
-background-color: #fcfcfc;
-}
-/* Responsividade da Tabela de Logs */
-@media (max-width: 768px) {
-.log-table thead { display: none; }
-.log-table tr {
-display: block;
-margin-bottom: 15px;
-border: 1px solid var(--color-border);
-border-radius: 8px;
-overflow: hidden;
-}
-.log-table td {
-display: block;
-text-align: right;
-border: none;
-border-bottom: 1px solid var(--color-border);
-position: relative;
-padding-left: 50%;
-}
-.log-table td:last-child { border-bottom: none; }
-.log-table td::before {
-content: attr(aria-label);
-position: absolute;
-left: 10px;
-font-weight: bold;
-text-transform: uppercase;
-font-size: 0.8rem;
-color: var(--color-text-primary);
-}
+.nav-button:hover {
+background-color: #5a6268;
 }
 
-/* --- Correção Z-Index Dropdown --- */
-.group-z-index-lift {
-z-index: 10 !important;
-}
-.table-wrapper-dropdown-active {
-overflow: visible !important;
-}
-.row-z-index-lift {
-z-index: 50 !important;
-}
-
-/* --- Modal de Projeto (Drag and Drop) --- */
-.modal hr {
-border: none;
-border-top: 1px solid var(--color-border);
-margin: 10px 0;
-}
-
-.drop-zone {
-position: relative;
-display: flex;
-align-items: center;
-justify-content: center;
-width: 100%;
-min-height: 100px;
-padding: 20px;
-border-radius: 8px;
-border: 2px dashed var(--color-border);
-background-color: var(--color-background);
-color: var(--color-text-secondary);
-font-size: 0.95rem;
+/* Botão Voltar */
+.nav-back-button { 
+background-color: transparent;
+color: #007bff;
 text-align: center;
-cursor: pointer;
-transition: all 0.2s ease;
-box-sizing: border-box;
+padding: 5px;
 }
-.drop-zone:hover {
+.nav-back-button:hover {
 background-color: #f0f2f5;
-border-color: #d1d5db;
 }
-.drop-zone.drag-over {
-background-color: var(--color-primary-light);
-border-color: var(--color-primary);
-}
-.drop-zone-text {
-pointer-events: none;
-}
-.drop-zone input[type="file"] {
-position: absolute;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-opacity: 0;
-cursor: pointer;
-}
-.file-list-preview {
-list-style: none;
-padding: 0;
-margin: 10px 0 0 0;
-max-height: 150px;
-overflow-y: auto;
-}
-.file-list-preview li {
-background-color: var(--color-background);
-padding: 8px 12px;
-border-radius: 6px;
-margin-bottom: 5px;
-font-size: 0.9rem;
+
+/* Painel de Histórico (Undo/Redo) */
+.history-buttons {
 display: flex;
 justify-content: space-between;
-align-items: center;
 }
-.file-list-preview .file-name {
-word-break: break-all;
-}
-.file-list-preview .file-remove-btn {
-background: none;
-border: none;
-color: var(--color-danger);
-font-weight: bold;
-font-size: 1.1rem;
-cursor: pointer;
-padding: 0 5px;
+.history-buttons button {
+width: 48%;
 }
 
-/* --- [REVISÃO PROFISSIONAL] Busca Global --- */
-.header-search-container {
-position: relative;
-display: flex;
-align-items: center;
-flex-grow: 1;
-max-width: 400px;
-margin: 0 20px;
-}
+/* Botões de Ação */
+#btn-delete { background-color: #dc3545; }
+#btn-delete:hover { background-color: #c82333; }
 
-#global-search-input {
-width: 100%;
-padding: 10px 15px;
-font-size: 0.95rem;
-border: 1px solid var(--color-border);
-border-radius: 8px;
-box-sizing: border-box;
-background-color: var(--color-background);
-transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-#global-search-input:focus {
-outline: none;
-background-color: #fff;
-border-color: var(--color-primary);
-box-shadow: 0 0 0 3px var(--color-primary-light);
-}
+#btn-clear-all { background-color: #fd7e14; }
+#btn-clear-all:hover { background-color: #e06c11; }
+
+#btn-download-pdf { background-color: #28a745; }
+#btn-download-pdf:hover { background-color: #218838; }
 
 
-.global-search-results-container {
-position: absolute;
-top: 110%;
-left: 0;
-width: 100%;
-background-color: var(--color-board-bg);
-border: 1px solid var(--color-border);
-border-radius: 8px;
-box-shadow: var(--color-shadow-medium);
-z-index: 2000;
-max-height: 400px;
+/* --- ÁREA DO CANVAS (DIREITA) --- */
+
+/* MUDANÇA: Wrapper para o scroll independente da área de trabalho */
+.main-content-area {
+flex: 1; 
+height: 100vh;
 overflow-y: auto;
-padding: 4px;
-transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.global-search-results-container.hidden {
-display: block; /* MANTÉM no DOM para animação */
-opacity: 0;
-transform: translateY(-5px);
-pointer-events: none;
+background-color: #f0f2f5;
 }
 
-.search-result-item {
-padding: 12px 15px;
-font-size: 0.9rem;
-cursor: pointer;
-border-radius: 6px;
-border-bottom: 1px solid var(--color-border);
-}
-.search-result-item:last-child {
-border-bottom: none;
-}
-.search-result-item:hover {
-background-color: var(--color-background);
-}
-.search-result-item strong {
-color: var(--color-primary);
-display: block;
-font-size: 1rem;
-}
-.search-result-item span {
-color: var(--color-text-secondary);
-font-size: 0.85rem;
-}
-.search-result-no-match {
-padding: 12px 15px;
-color: var(--color-text-secondary);
-font-style: italic;
-}
-
-/* Botão de Perigo (para modais de exclusão) */
-.btn-danger {
-background-color: var(--color-danger);
-color: white;
-border-color: var(--color-danger);
-}
-.btn-danger:hover {
-background-color: #c5372a; /* Vermelho mais escuro */
-border-color: #c5372a;
-}
-
-/* --- NOVO: Estilo para lista de arquivos no modal --- */
-#file-list-modal-body li {
+.canvas-container {
+/* MUDANÇA: Centraliza o canvas e o rodapé na área de scroll */
 display: flex;
-justify-content: space-between;
+flex-direction: column;
 align-items: center;
-}
-#file-list-modal-body a {
-text-decoration: none;
-color: var(--color-primary);
-font-weight: 500;
-font-size: 1rem;
-word-break: break-all;
-padding-right: 15px;
-}
-#file-list-modal-body a:hover {
-text-decoration: underline;
+/* Adiciona espaçamento superior e inferior na área de scroll */
+padding: 30px 20px; 
 }
 
-
-/* Célula editável genérica */
-.editable-cell {
-cursor: pointer;
-border-radius: 4px;
-padding: 4px 6px;
-margin: -4px -6px; /* Compensa o padding para manter o alinhamento */
-transition: background-color 0.2s ease;
-display: inline-block; /* Garante que o hover funcione bem */
-min-width: 20px; /* Garante que '---' seja clicável */
+#c {
+border: 1px solid #999;
+box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+background-color: #ffffff;
+/* Garante que o canvas não encolha */
+flex-shrink: 0;
 }
 
-.editable-cell:hover {
-background-color: var(--color-background);
-box-shadow: inset 0 0 0 1px var(--color-border);
-}
-
-/* Efeito de hover para a célula de orçamento inteira */
-.col-orcamento .editable-cell-wrapper {
-cursor: pointer;
-border-radius: 4px;
-padding: 4px 6px;
-margin: -4px -6px;
-transition: background-color 0.2s ease;
-}
-.col-orcamento .editable-cell-wrapper:hover {
-background-color: var(--color-background);
-}
-
-
-/* --- Modal Mestre (Detalhes) --- */
-#modal-detalhes-orcamento {
-max-width: 800px; /* Mais largo */
-}
-
-#form-detalhes-orcamento .detalhes-grid {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 20px;
-}
-
-#form-detalhes-orcamento .form-section {
+/* MUDANÇA: Rodapé (Título e Data) abaixo do Canvas */
+.canvas-footer {
+width: 595px; /* Mesma largura do canvas */
+padding: 15px 10px;
 display: flex;
-flex-direction: column;
-gap: 10px;
-}
-
-#form-detalhes-orcamento .form-section.full-width {
-grid-column: 1 / -1; /* Ocupa a largura toda */
-}
-
-#form-detalhes-orcamento .form-section h5 {
-font-size: 1rem;
-color: var(--color-primary);
-border-bottom: 1px solid var(--color-border);
-padding-bottom: 5px;
-margin: 5px 0 0 0;
-}
-
-#form-detalhes-orcamento .input-group {
-display: flex;
-flex-direction: column;
-gap: 5px;
-}
-
-/* --- Modal de Edição Simples --- */
-#modal-edit-simples textarea {
-display: none; /* Escondido por padrão */
-min-height: 100px;
-resize: vertical;
-}
-#modal-edit-simples input[type="text"] {
-display: block; /* Visível por padrão */
-}
-
-/* --- Ajuste Fino: Data Entrada (Linha de Produção) --- */
-.monday-row td:nth-child(4).col-data-date {
-padding-left: 22px !important; 
-}
-
-/* --- Ajuste Exclusivo para o Grupo 'Prontos' (ID 5) --- */
-.monday-group[data-group-id="5"] .monday-thead th:nth-child(4) {
-width: 180px !important;      
-min-width: 180px !important;
-max-width: 180px !important;
-padding-left: 10px !important; 
-}
-.monday-group[data-group-id="5"] .col-status {
-width: 180px !important;      
-min-width: 180px !important;
-max-width: 180px !important;
-padding-left: 10px !important; 
-}
-
-/* --- Ajuste de Alinhamento: Entrada(1), Projetar(3), StandBy(6), Instalados(7) --- */
-/* 1. Força a tabela a ir até o final (100%) para criar a linha contínua */
-.monday-group[data-group-id="1"] .monday-table,
-.monday-group[data-group-id="3"] .monday-table,
-.monday-group[data-group-id="6"] .monday-table,
-.monday-group[data-group-id="7"] .monday-table {
-width: 100% !important;
-}
-
-/* 2. Mantém o alinhamento das colunas iniciais (Status, Link, etc) apertado à esquerda */
-.monday-group[data-group-id="1"] .monday-thead th:nth-child(4),
-.monday-group[data-group-id="3"] .monday-thead th:nth-child(4),
-.monday-group[data-group-id="6"] .monday-thead th:nth-child(4),
-.monday-group[data-group-id="7"] .monday-thead th:nth-child(4) {
-width: 180px !important;
-min-width: 180px !important;
-max-width: 180px !important;
-padding-left: 10px !important; 
-}
-
-.monday-group[data-group-id="1"] .col-status,
-.monday-group[data-group-id="3"] .col-status,
-.monday-group[data-group-id="6"] .col-status,
-.monday-group[data-group-id="7"] .col-status {
-width: 300px !important;
-min-width: 180px !important;
-max-width: 180px !important;
-padding-left: 10px !important; 
-}
-
-/* 3. O TRUQUE: Faz a ÚLTIMA coluna dessas tabelas absorver todo o espaço restante (vazio) */
-.monday-group[data-group-id="1"] .monday-table th:last-child,
-.monday-group[data-group-id="1"] .monday-table td:last-child,
-.monday-group[data-group-id="3"] .monday-table th:last-child,
-.monday-group[data-group-id="3"] .monday-table td:last-child,
-.monday-group[data-group-id="6"] .monday-table th:last-child,
-.monday-group[data-group-id="6"] .monday-table td:last-child,
-.monday-group[data-group-id="7"] .monday-table th:last-child,
-.monday-group[data-group-id="7"] .monday-table td:last-child {
-width: auto !important; /* Permite esticar */
-max-width: none !important; /* Remove limites */
-}
-
-/* 4. Estética: Garante que o botão de status não fique gigante ao esticar a coluna */
-.monday-group[data-group-id="1"] .col-status .status-selector,
-.monday-group[data-group-id="3"] .col-status .status-selector {
-max-width: 280px; /* Mantém o tamanho visual do botão */
-}
-
-input[type="date"],
-input[type="datetime-local"] {
-cursor: pointer;
-}
-
-/* CORREÇÃO: Força o modal de "Adicionar Tarefa" a aparecer sobre o "Modal Específico" */
-#modal-add-tarefa {
-z-index: 1060; /* Maior que 1001 do modal padrão */
-}
-
-/* --- Novos Estilos para Inputs de Tempo --- */
-.time-input-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.time-input-group input[type="time"] {
-    flex: 1; /* Ocupa o espaço restante */
-}
-.time-input-group .modal-quick-days {
-    flex-shrink: 0;
-}
-
-/* --- Hitbox de Data --- */
-.full-clickable-date {
-    cursor: pointer;
+justify-content: space-between; /* Lado a lado */
+background-color: #fdfdfd;
+border: 1px solid #ccc;
+    border-top: none;
+    /* MUDANÇA: A borda superior foi restaurada para o caso de sobreposição */
+    border-top: 1px solid #ccc;
+box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    
+    /* === MUDANÇAS APLICADAS === */
+    /* Move o rodapé para cima (sobrepondo o canvas) */
+    transform: translateY(-100%);
+    /* Garante que o rodapé fique acima do canvas */
     position: relative;
-}
-input[type="date"]::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-}
-
-/* --- Drag and Drop no Modal de Criação --- */
-.added-item-list li {
-    cursor: grab; /* Indica que é arrastável */
-}
-.added-item-list li:active {
-    cursor: grabbing;
-}
-/* Estilos visuais para quando estiver arrastando (SortableJS) */
-.sortable-ghost-modal {
-    opacity: 0.4;
-    background-color: var(--color-primary-light);
-    border: 1px dashed var(--color-primary);
-}
-.sortable-chosen-modal {
-    background-color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 10;
+    /* === FIM DAS MUDANÇAS === */
 }
 
-/* --- Estilos para o Modal de Aprovação de Projetos --- */
-#modal-aprovacao-projeto {
-    max-width: 700px;
-}
-.projeto-list-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    max-height: 400px;
-    overflow-y: auto;
-    padding: 10px;
-}
-.projeto-item-row {
-    background-color: var(--color-background);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.2s ease;
-}
-.projeto-item-row:hover {
-    box-shadow: var(--color-shadow-light);
-}
-.projeto-colab-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.projeto-colab-name {
-    font-weight: 600;
-    font-size: 1rem;
-    color: var(--color-primary);
-}
-.projeto-status-badge {
-    font-size: 0.8rem;
-    padding: 3px 8px;
-    border-radius: 12px;
-    display: inline-block;
-    width: fit-content;
-    font-weight: 500;
-}
-/* Cores dos Badges */
-.status-pendente {
-    background-color: #f3f4f6;
-    color: #4b5563;
-    border: 1px solid #e5e7eb;
-}
-.status-aprovado {
-    background-color: #dcfce7;
-    color: #15803d;
-    border: 1px solid #bbf7d0;
-}
-.status-reprovado {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
+.footer-text {
+font-size: 14px;
+font-family: 'Helvetica, Arial, sans-serif';
+color: #333;
+font-weight: 600;
 }
 
-/* --- Estilo para Coluna Projetos na Tabela --- */
-.col-projetos {
-    width: 100px !important;
-    text-align: center;
+
+/* --- REGRAS DE IMPRESSÃO --- */
+@media print {
+body, html {
+overflow: visible;
+height: auto;
+background-color: #fff;
 }
 
-/* --- Novo Status de Tarefa (Aguardando Projeto - Vermelho/Travado) --- */
-.status-option[data-value="Aguardando Projeto"], 
-.status-display[data-status-value="Aguardando Projeto"] { 
-    color: #b91c1c; 
-    background-color: #fee2e2; 
-    border-color: #fecaca;
-    cursor: not-allowed; /* Indica que está travado */
-    opacity: 0.8;
+.app-container {
+display: block;
+height: auto;
 }
 
-#modal-confirmar-exclusao-orcamento {
-    z-index: 1060; /* Maior que o modal padrão (1001) para ficar por cima */
+/* Oculta tudo, exceto a área do canvas e seu rodapé */
+body > *:not(.main-content-area) {
+display: none;
+}
+.controls-panel {
+display: none;
+}
+.main-content-area {
+overflow: visible;
+height: auto;
+padding: 0;
+}
+.canvas-container {
+padding: 0;
+}
+
+#c {
+border: none;
+box-shadow: none;
+margin: 0;
+padding: 0;
+width: 100%;
+height: auto;
+}
+
+.canvas-footer {
+box-shadow: none;
+border: none;
+justify-content: space-between;
+width: 100%;
+        
+        /* MUDANÇA: Reseta a transformação na impressão, se necessário */
+        /* (Assumindo que o PDF lida com isso separadamente) */
+        transform: none; 
+        position: static;
+}
 }
